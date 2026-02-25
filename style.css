@@ -1,0 +1,281 @@
+/* ==============================
+   Shared CSS for Flower Shop Admin
+   ============================== */
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    background: url('https://images.unsplash.com/photo-1490750967868-88aa4486c946') no-repeat center center/cover;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    position: relative;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    z-index: -1;
+}
+
+.dashboard-page .container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 30px auto;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(12px);
+    padding: 30px;
+    border-radius: 20px;
+    color: white;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+}
+
+
+/* NAVBAR - shared for all pages */
+.navbar {
+    width: 100%;
+    background: #ec4dbf;
+    overflow: auto;
+    padding: 10px 0;
+    border-radius: 0 0 10px 10px;
+    position: fixed;      /* Make navbar fixed at top */
+    top: 0;
+    left: 0;
+    z-index: 999;         /* Keep it above other elements */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.navbar a {
+    text-decoration: none;
+    color: white;
+    padding: 12px 20px;
+    float: left;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.navbar a:hover {
+    background: #3742a3;
+    border-radius: 5px;
+}
+
+.navbar a.active {
+    background: #3742a3;
+    border-radius: 5px;
+}
+.navbar {
+    position: fixed;    /* Fix it at the top */
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #ec4dbf; /* same as dashboard */
+    overflow: auto;
+    padding: 10px 0;
+    border-radius: 0 0 10px 10px;
+    z-index: 1000;      /* stays above content */
+}
+
+body {
+    padding-top: 60px;  /* give space so content starts below navbar */
+}
+
+body.dashboard-page .container,
+body.dashboard-page h2,
+body.dashboard-page h1,
+body.dashboard-page form {
+    margin-top: 80px;  /* Adjust based on navbar height */
+}
+
+
+
+
+/* Forms */
+input[type=text], input[type=number], input[type=file], input[type=password], select {
+    width: 90%;
+    padding: 10px 15px;
+    margin: 10px 0;
+    border-radius: 25px;
+    border: none;
+    outline: none;
+    transition: 0.3s;
+}
+
+input[type=text]:focus, input[type=number]:focus, input[type=file]:focus, input[type=password]:focus, select:focus {
+    transform: scale(1.05);
+}
+
+button, input[type=submit] {
+    width: 95%;
+    padding: 10px;
+    border-radius: 25px;
+    border: none;
+    background: #ff4da6;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover, input[type=submit]:hover {
+    background: #e60073;
+    transform: scale(1.05);
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 15px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    color: white;
+}
+
+th {
+    background-color: rgba(0,0,0,0.3);
+}
+
+.low-stock {
+    background-color: #ffcccc;
+    font-weight: bold;
+    color: black;
+}
+
+/* Messages */
+.error {
+    color: #ffcccc;
+    margin: 10px 0;
+}
+
+.success {
+    color: #00ff99;
+    margin: 10px 0;
+}
+
+/* Password eye icon */
+.password-wrapper {
+    position: relative;
+}
+
+.eye-icon {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    color: #ff4da6;
+}
+
+/* Add Product / Login animation */
+.login-box, .dashboard-page .container {
+    animation: fadeSlide 1.5s ease forwards;
+    transform: translateY(40px);
+    opacity: 0;
+}
+
+@keyframes fadeSlide {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+/* ==============================
+   FRONTEND (Homepage / Cart / Checkout)
+   ============================== */
+
+body.frontend-page {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    background: #f7f7f7;
+}
+
+/* Header */
+.frontend-page header {
+    background: white;
+    padding: 15px 8%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.frontend-page .logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ec4dbf;
+    text-decoration: none;
+}
+
+.frontend-page .navbar a {
+    margin: 0 12px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+}
+
+.frontend-page .navbar a:hover {
+    color: #ec4dbf;
+}
+
+/* Products */
+.frontend-page .box-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    padding: 40px 8%;
+}
+
+.frontend-page .box {
+    background: white;
+    border-radius: 15px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    transition: 0.3s;
+}
+
+.frontend-page .box:hover {
+    transform: translateY(-6px);
+}
+
+.frontend-page .box img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.frontend-page .price {
+    color: #ec4dbf;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Buttons */
+.frontend-page .cart-btn,
+.frontend-page .heart-btn {
+    color: #ec4dbf;
+    font-size: 18px;
+    margin: 8px;
+}
+.cart-image {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 12px;
+}

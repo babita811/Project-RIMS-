@@ -1,0 +1,167 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+body{
+    height:100vh;
+}
+
+.container{
+    width:100%;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:url('../images/About (2).jpg') center center/cover no-repeat;
+    padding: 2rem 1rem;
+}
+
+.container::before{
+    content:"";
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.5);
+    top:0;
+    left:0;
+    z-index:0;
+}
+
+.login-Header{
+    text-align:center;
+    color:white;
+    margin-bottom:2rem;
+    position:relative;
+    z-index:1;
+}
+
+.login-Header h1{
+    font-size:70px;
+    color:#f17dda;
+    letter-spacing:3px;
+}
+
+.login-Header h3{
+    font-size:24px;
+    margin-top:10px;
+    color:#aafdfd;
+}
+
+.login-Header p{
+    font-size:18px;
+    margin-top:10px;
+    color:white;
+}
+
+.Login-body form{
+    width:420px;
+    max-width:95vw;
+    padding:30px;
+    background:rgba(255,255,255,0.95);
+    border-radius:15px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    z-index:1;
+}
+
+.input-group{
+    margin-bottom:20px;
+    width:100%;
+}
+
+.input-group label{
+    font-size:14px;
+    font-weight:bold;
+    margin-bottom:5px;
+    display:block;
+    color:#555;
+}
+
+.input-group input{
+    width:100%;
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    font-size:14px;
+    transition:0.3s;
+}
+
+.input-group input:focus{
+    border-color:#f17dda;
+    outline:none;
+    box-shadow:0 0 5px rgba(241,125,218,0.5);
+}
+
+/* ── Login button ── */
+.login-btn{
+    margin-top:10px;
+}
+
+.login-btn button{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    background:#f17dda;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.login-btn button:hover{
+    background:#aafdfd;
+    color:black;
+}
+
+/* ── Divider ── */
+.divider{
+    display:flex;
+    align-items:center;
+    margin: 18px 0 14px;
+    gap: 10px;
+}
+
+.divider::before,
+.divider::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:#e0d0e8;
+}
+
+.divider span{
+    font-size:12px;
+    color:#aaa;
+    white-space:nowrap;
+}
+
+/* ── Register Now button (outlined teal style) ── */
+.register-btn a{
+    display:block;
+    width:100%;
+    padding:12px;
+    border:2px solid #f17dda;
+    border-radius:8px;
+    background:transparent;
+    color:#f17dda;
+    font-size:16px;
+    font-weight:bold;
+    text-align:center;
+    text-decoration:none;
+    cursor:pointer;
+    transition:0.3s;
+    box-sizing:border-box;
+}
+
+.register-btn a:hover{
+    background:#f17dda;
+    color:white;
+}

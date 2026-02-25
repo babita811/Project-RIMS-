@@ -1,0 +1,159 @@
+   
+:root {
+      --pink:      #f17dda;
+      --pink-dark: #d45fbf;
+      --teal:      #aafdfd;
+      --teal-dark: #7de8e8;
+      --bg:        #f9f9f9;
+      --card:      #fff;
+      --text:      #333;
+      --muted:     #777;
+      --border:    #f5d0ef;
+      --input-bg:  #fef8fd;
+      --total-bg:  #fef0fb;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+    }
+
+    .purchase-section {
+      max-width: 680px;
+      margin: 120px auto 60px;
+      padding: 0 1.5rem;
+    }
+
+    .purchase-section .heading {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .purchase-section .heading span {
+      color: var(--pink);
+    }
+
+   
+    .purchase-card {
+      background: var(--card);
+      border-radius: 1.2rem;
+      box-shadow: 0 8px 32px rgba(241, 125, 218, 0.12);
+      padding: 3rem;
+      margin-top: 2rem;
+      border-top: 4px solid var(--pink);
+    }
+
+    .purchase-card h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.85rem 1.1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Poppins', sans-serif;
+      color: var(--text);
+      background: var(--input-bg);
+      transition: border-color 0.3s, box-shadow 0.3s;
+      outline: none;
+    }
+
+    .form-group input:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px rgba(241, 125, 218, 0.15);
+    }
+
+    .total-row {
+      background: var(--total-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin: 1.5rem 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .total-row span:last-child {
+      color: var(--pink);
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+  
+    .btn-purchase {
+      display: block;
+      width: 100%;
+      padding: 0.95rem;
+      background: var(--pink);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-family: 'Poppins', sans-serif;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.15s;
+      letter-spacing: 0.5px;
+    }
+    .btn-purchase:hover {
+      background: var(--teal);
+      color: #333;
+      transform: translateY(-2px);
+    }
+
+   
+    .back-link {
+      display: inline-block;
+      margin-top: 1.5rem;
+      color: var(--pink);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .back-link:hover {
+      color: var(--pink-dark);
+      text-decoration: underline;
+    }
+    .back-link i { margin-right: 0.4rem; }
+
+    #loginGuard {
+      display: none;
+      background: #ffe0f0;
+      color: #c0392b;
+      border: 1px solid var(--pink);
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+    #loginGuard a {
+      color: var(--pink-dark);
+      font-weight: 700;
+    }
+
+  
+    .fa-user.logged-in { color: var(--teal) !important; }
