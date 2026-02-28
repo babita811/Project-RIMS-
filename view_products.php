@@ -38,12 +38,12 @@ $search = isset($_GET['search']) ? $_GET['search'] : '';
 $category = isset($_GET['category']) ? $_GET['category'] : '';
 $sort = isset($_GET['sort']) ? $_GET['sort'] : '';
 
-$query = "SELECT * FROM products WHERE 1";
+$query = "SELECT p.*, c.name as category_name, c.icon as category_icon FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE 1";
 $params = [];
 $types = "";
 
 if(!empty($search)){ 
-    $query .= " AND (LOWER(name) LIKE LOWER(?) OR LOWER(category) LIKE LOWER(?))"; 
+    $query .= " AND (LOWER(p.name) LIKE LOWER(?) OR LOWER(c.name) LIKE LOWER(?))"; 
     $params[] = "%$search%";
     $params[] = "%$search%";
     $types .= "ss";
@@ -52,7 +52,7 @@ if(!empty($search)){
 // Category filter
 
 if (!empty($category)) {
-    $query .= " AND LOWER(category) LIKE LOWER(?)";
+    $query .= " AND LOWER(c.name) LIKE LOWER(?)";
     $params[] = "%$category%";
     $types .= "s";
 }
@@ -61,12 +61,12 @@ if (!empty($category)) {
 
 if(!empty($sort)){
     switch($sort){
-        case 'name_asc': $query.=" ORDER BY name ASC"; break;
-        case 'name_desc': $query.=" ORDER BY name DESC"; break;
-        case 'price_asc': $query.=" ORDER BY price ASC"; break;
-        case 'price_desc': $query.=" ORDER BY price DESC"; break;
-        case 'quantity_asc': $query.=" ORDER BY quantity ASC"; break;
-        case 'quantity_desc': $query.=" ORDER BY quantity DESC"; break;
+        case 'name_asc': $query.=" ORDER BY p.name ASC"; break;
+        case 'name_desc': $query.=" ORDER BY p.name DESC"; break;
+        case 'price_asc': $query.=" ORDER BY p.price ASC"; break;
+        case 'price_desc': $query.=" ORDER BY p.price DESC"; break;
+        case 'quantity_asc': $query.=" ORDER BY p.quantity ASC"; break;
+        case 'quantity_desc': $query.=" ORDER BY p.quantity DESC"; break;
     }
 }
 

@@ -12,7 +12,7 @@ $search   = trim($_GET['search'] ?? '');
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo   = $_GET['date_to'] ?? '';
 
-$query  = "SELECT s.id as sale_id, p.name as product_name, p.image,
+$query  = "SELECT s.id as sale_id, COALESCE(p.name, 'Product Deleted') as product_name, COALESCE(p.image, '') as image,
                   u.name as customer_name, u.username,
                   s.quantity, s.subtotal, s.sale_date
            FROM sales s
@@ -197,6 +197,7 @@ $totalOrders = count($sales);
     <a href="view_products.php" class="<?= $page=='view_products.php'?'active':'' ?>">View Flowers</a>
     <a href="analytics.php" class="<?= $page=='sales.php'?'active':'' ?>">Analytics</a>
     <a href="view_sales.php" class="<?= $page=='view_sales.php'?'active':'' ?>">View Sales</a>
+    <a href="messages.php">Messages</a>
     <a href="logout.php" class="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
 </div>
 

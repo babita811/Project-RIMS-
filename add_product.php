@@ -11,7 +11,7 @@ if (isset($_POST['add_product'])) {
     $name     = trim($_POST['product_name']);
     $price    = floatval($_POST['product_price']);
     $qty      = intval($_POST['product_quantity']);
-    $category = $_POST['product_category'];
+    $category_id = intval($_POST['product_category']);
 
     if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
         $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
@@ -30,8 +30,8 @@ if (isset($_POST['add_product'])) {
             if (!move_uploaded_file($tmp_name, "uploads/" . $image_name)) {
                 $error = "Failed to upload image!";
             } else {
-                $stmt = $conn->prepare("INSERT INTO products (name, price, quantity, category, image) VALUES (?, ?, ?, ?, ?)");
-                $stmt->bind_param("sdiss", $name, $price, $qty, $category, $image_name);
+                $stmt = $conn->prepare("INSERT INTO products (name, price, quantity, category_id, image) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("sdiis", $name, $price, $qty, $category_id, $image_name);
                 if ($stmt->execute()) {
                     $success = "Flower added successfully!";
                 } else {
@@ -97,6 +97,7 @@ if (isset($_POST['add_product'])) {
     <a href="sales.php">Sales</a>
     <a href="analytics.php">Analytics</a>
     <a href="view_sales.php">View Sales</a>
+    <a href="messages.php">Messages</a>
     <a href="logout.php" class="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
 </div>
 
@@ -131,10 +132,10 @@ if (isset($_POST['add_product'])) {
                 <select name="product_category" required>
                     <option value="">Select Category</option>
                     <?php
-                    $cats = $conn->query("SELECT name FROM categories ORDER BY name ASC");
+                    $cats = $conn->query("SELECT id, name, icon FROM categories ORDER BY name ASC");
                     while ($c = $cats->fetch_assoc()):
                     ?>
-                    <option value="<?= $c['name'] ?>"><?= htmlspecialchars($c['name']) ?></option>
+                    <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['icon'] ?? '') ?> <?= htmlspecialchars($c['name']) ?></option>
                     <?php endwhile; ?>
                 </select>
                 <div style="margin-top:0.5rem; font-size:0.78rem; color:#aaa;">

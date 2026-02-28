@@ -214,6 +214,7 @@ $todayTotal = array_sum(array_column($todaySales, 'subtotal'));
     <a href="sales.php" class="active">Sales</a>
     <a href="analytics.php">Analytics</a>
     <a href="view_sales.php">View Sales</a>
+    <a href="messages.php">Messages</a>
     <a href="logout.php" class="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
 </div>
 

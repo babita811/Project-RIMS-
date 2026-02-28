@@ -33,7 +33,7 @@ $stmt = $conn->prepare("
            o.address, o.city,
            o.note, o.payment_method, o.total_amount, o.status, o.ordered_at,
            s.quantity, s.subtotal,
-           p.name as product_name, p.image
+           COALESCE(p.name, 'Product Deleted') as product_name, COALESCE(p.image, '') as image
     FROM sales_details o
     JOIN users u ON u.id = o.user_id
     LEFT JOIN sales s ON s.order_id = o.id
@@ -66,7 +66,7 @@ foreach ($rows as $row) {
             'items'          => [],
         ];
     }
-    if ($row['product_name']) {
+    if ($row['quantity']) {
         $orders[$oid]['items'][] = [
             'name'     => $row['product_name'],
             'image'    => $row['image'],
@@ -218,7 +218,7 @@ $totalOrders = count($orders);
           <?php else: ?>
             <?php foreach ($order['items'] as $item): ?>
             <div class="item-row">
-              <img src="uploads/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
+              <?php if(!empty($item['image'])): ?><img src="uploads/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>"><?php else: ?><span style="font-size:2rem;">🌸</span><?php endif; ?>
               <div>
                 <div class="item-name"><?= htmlspecialchars($item['name']) ?></div>
                 <div class="item-qty">Qty: <?= $item['quantity'] ?></div>

@@ -11,11 +11,12 @@ $categoryColors = [
     "Lotus"     => "#48cae4",
     "Baby"      => "#adb5bd",
 ];
-$badgeColor  = $categoryColors[$row['category']] ?? "#ffb3d9";
+$catName     = $row['category_name'] ?? $row['category'] ?? 'Unknown';
+$badgeColor  = $categoryColors[$catName] ?? "#ffb3d9";
 $lowStock    = ($row['quantity'] > 0 && $row['quantity'] <= 5);
 $outOfStock  = ($row['quantity'] <= 0);
 ?>
-<div class="box" data-category="<?= htmlspecialchars($row['category']) ?>">
+<div class="box" data-category="<?= htmlspecialchars($catName) ?>">
     <div style="position:relative; overflow:hidden;">
         <img src="uploads/<?= htmlspecialchars($row['image']) ?>"
              alt="<?= htmlspecialchars($row['name']) ?>"
@@ -57,7 +58,7 @@ $outOfStock  = ($row['quantity'] <= 0);
             font-size: 0.75rem;
             font-weight: 600;
             letter-spacing: 0.04em;
-        "><?= htmlspecialchars($row['category']) ?></span>
+        "><?= htmlspecialchars($row['category_name'] ?? '') ?></span>
     </p>
 
     <div class="price">Rs <?= number_format($row['price'], 2) ?></div>

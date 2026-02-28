@@ -28,7 +28,7 @@ $success = $error = "";
 
 if (isset($_POST['update_product'])) {
     $name     = trim($_POST['product_name']);
-    $category = $_POST['product_category'];
+    $category_id = intval($_POST['product_category']);
     $price    = floatval($_POST['product_price']);
     $quantity = intval($_POST['product_quantity']);
 
@@ -51,8 +51,8 @@ if (isset($_POST['update_product'])) {
                 if (!empty($product['image']) && file_exists("uploads/" . $product['image'])) {
                     unlink("uploads/" . $product['image']);
                 }
-                $stmt = $conn->prepare("UPDATE products SET name=?, category=?, price=?, quantity=?, image=? WHERE id=?");
-                $stmt->bind_param("ssdisl", $name, $category, $price, $quantity, $image_name, $id);
+                $stmt = $conn->prepare("UPDATE products SET name=?, category_id=?, price=?, quantity=?, image=? WHERE id=?");
+                $stmt->bind_param("sidisl", $name, $category_id, $price, $quantity, $image_name, $id);
                 if ($stmt->execute()) {
                     $success = "Product updated successfully!";
                     $product = array_merge($product, compact('name', 'category', 'price', 'quantity', 'image_name'));
@@ -64,8 +64,8 @@ if (isset($_POST['update_product'])) {
             }
         }
     } else {
-        $stmt = $conn->prepare("UPDATE products SET name=?, category=?, price=?, quantity=? WHERE id=?");
-        $stmt->bind_param("ssdii", $name, $category, $price, $quantity, $id);
+        $stmt = $conn->prepare("UPDATE products SET name=?, category_id=?, price=?, quantity=? WHERE id=?");
+        $stmt->bind_param("sidii", $name, $category_id, $price, $quantity, $id);
         if ($stmt->execute()) {
             $success = "Product updated successfully!";
             $product['name']     = $name;
@@ -154,6 +154,7 @@ if (isset($_POST['update_product'])) {
     <a href="sales.php">Sales</a>
     <a href="analytics.php">Analytics</a>
     <a href="view_sales.php">View Sales</a>
+    <a href="messages.php">Messages</a>
     <a href="logout.php" class="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
 </div>
 
@@ -176,11 +177,11 @@ if (isset($_POST['update_product'])) {
                 <select name="product_category" required>
                     <option value="">Select Category</option>
                     <?php
-                    $cats = $conn->query("SELECT name FROM categories ORDER BY name ASC");
+                    $cats = $conn->query("SELECT id, name, icon FROM categories ORDER BY name ASC");
                     while ($c = $cats->fetch_assoc()):
                     ?>
-                    <option value="<?= $c['name'] ?>" <?= $product['category'] === $c['name'] ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($c['name']) ?>
+                    <option value="<?= $c['id'] ?>" <?= ($product['category_id'] ?? '') == $c['id'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($c['icon'] ?? '') ?> <?= htmlspecialchars($c['name']) ?>
                     </option>
                     <?php endwhile; ?>
                 </select>

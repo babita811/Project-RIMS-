@@ -5,7 +5,7 @@ include 'db.php';
 $isLoggedIn = isset($_SESSION['isClientLoggedIn']) && $_SESSION['isClientLoggedIn'] === true;
 $clientName = htmlspecialchars($_SESSION['clientName'] ?? '');
 
-$query = "SELECT * FROM products WHERE 1";
+$query = "SELECT p.*, c.name as category_name, c.icon as category_icon FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE 1";
 $stmt = $conn->prepare($query);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -110,7 +110,7 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
       🌿 All
     </button>
     <?php foreach ($categories as $cat): ?>
-    <button class="cat-btn" onclick="filterByCategory('<?= htmlspecialchars($cat['name']) ?>', this)">
+    <button class="cat-btn" onclick="filterByCategory(this.dataset.cat, this)" data-cat="<?= htmlspecialchars($cat['name'], ENT_QUOTES) ?>">
       <?= !empty($cat['icon']) ? $cat['icon'] : '🌿' ?> <?= htmlspecialchars($cat['name']) ?>
     </button>
     <?php endforeach; ?>
@@ -151,8 +151,8 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
 <!-- CONTACT -->
 <section class="contact" id="contact">
   <h1 class="heading"><span>Contact</span> Us</h1>
-  <div class="row">
-    <div class="contact-form-wrapper">
+  <div style="display:flex; justify-content:center; align-items:center; padding: 2rem 1rem;">
+    <div class="contact-form-wrapper" style="width:100%; max-width:600px;">
 
       <div id="contactLoginGuard" style="display:none;">
         <h3>Get in Touch</h3>
@@ -427,12 +427,13 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
     var q = (document.getElementById("searchInput") ? document.getElementById("searchInput").value : "").toLowerCase().trim();
     var anyVisible = false;
     document.querySelectorAll(".box-container .box").forEach(function(box) {
-      var name = box.querySelector("h3").textContent.toLowerCase();
+      var nameEl = box.querySelector("h3");
+      var name = nameEl ? nameEl.textContent.toLowerCase() : "";
       var cat  = (box.dataset.category || "").toLowerCase();
       var matchSearch = q === "" || name.includes(q);
       var matchCat    = activeCat === "all" || cat === activeCat.toLowerCase();
       var show = matchSearch && matchCat;
-      box.style.display = show ? "block" : "none";
+      box.style.display = show ? "" : "none";
       if (show) anyVisible = true;
     });
     var msg = document.getElementById("noProductsMsg");

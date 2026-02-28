@@ -37,14 +37,15 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit();
 }
 
-$stmt = $conn->prepare("INSERT INTO messages (name, email, phone, message) VALUES (?, ?, ?, ?)");
+$user_id = $_SESSION['clientId'] ?? NULL;
+$stmt = $conn->prepare("INSERT INTO messages (name, email, phone, message, user_id) VALUES (?, ?, ?, ?, ?)");
 
 if (!$stmt) {
     echo json_encode(['success' => false, 'error' => 'Database error: ' . $conn->error]);
     exit();
 }
 
-$stmt->bind_param("ssss", $name, $email, $phone, $message);
+$stmt->bind_param("ssssi", $name, $email, $phone, $message, $user_id);
 
 if ($stmt->execute()) {
     echo json_encode(['success' => true]);
