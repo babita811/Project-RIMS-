@@ -164,12 +164,12 @@ $result = $stmt->get_result();
                 <img src="uploads/<?= $row['image'] ?>" alt="<?= $row['name'] ?>">
                 <h3><?= $row['name'] ?></h3>
                 <?php
-$category   = $row['category'];
-$catIcon    = $catIconMap[$category] ?? '🌿';
+$category_name = $row['category_name'] ?? 'Unknown';
+$catIcon = $catIconMap[$category_name] ?? '🌿';
 ?>
 <p>
     <span style="background:#fce8f2; color:#d63384; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600; border:1px solid #f0c0e0;">
-        <?= $catIcon ?> <?= htmlspecialchars($category) ?>
+       <?= $catIcon ?> <?= htmlspecialchars($category_name) ?>
     </span>
 </p>
 

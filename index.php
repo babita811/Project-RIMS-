@@ -247,14 +247,13 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
     </div>
   </div>
 
-  <div class="icons">
+<div class="icons">
     <img src="images/secure.jpg" alt="">
     <div class="info">
-      <h3>Secure Payment</h3>
-      <span>We prioritize the security of your information and offer secure payment options for worry-free shopping.</span>
+      <h3>Cash on Delivery</h3>
+      <span>We offer Cash on Delivery so pay when your order arrives at your doorstep, worry-free!</span>
     </div>
   </div>
-</section>
 
 <!-- Quantity Picker Modal -->
 <div id="qtyModal" style="

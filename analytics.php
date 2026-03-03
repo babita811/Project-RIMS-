@@ -47,26 +47,29 @@ $months6 = array_column($last6m, 'label');
 $rev6m   = array_map('floatval', array_column($last6m, 'revenue'));
 $ord6m   = array_map('intval',   array_column($last6m, 'orders'));
 
-// ── Top 5 best selling flowers ──
-$topFlowers = $conn->query("
-    SELECT p.name, p.image, p.category,
+$result = $conn->query("
+    SELECT p.name, p.image, c.name as category,
            SUM(s.quantity) as total_sold,
            SUM(s.subtotal) as total_revenue
     FROM sales s
     JOIN products p ON s.product_id = p.id
+    LEFT JOIN categories c ON p.category_id = c.id
     GROUP BY s.product_id
     ORDER BY total_sold DESC
     LIMIT 5
-")->fetch_all(MYSQLI_ASSOC);
+");
+$topFlowers = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 
 // ── Sales by category ──
-$byCategory = $conn->query("
-    SELECT p.category, SUM(s.quantity) as total_sold, SUM(s.subtotal) as revenue
+$result = $conn->query("
+    SELECT c.name as category, SUM(s.quantity) as total_sold, SUM(s.subtotal) as revenue
     FROM sales s
     JOIN products p ON s.product_id = p.id
-    GROUP BY p.category
+    LEFT JOIN categories c ON p.category_id = c.id
+    GROUP BY p.category_id
     ORDER BY total_sold DESC
-")->fetch_all(MYSQLI_ASSOC);
+");
+$byCategory = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 
 $catLabels  = array_column($byCategory, 'category');
 $catSold    = array_map('intval', array_column($byCategory, 'total_sold'));

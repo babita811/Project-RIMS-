@@ -117,7 +117,7 @@ if (isset($_POST['delete_category'])) {
 $categories = $conn->query("
     SELECT c.id, c.name, c.icon, c.created_at, COUNT(p.id) as product_count
     FROM categories c
-    LEFT JOIN products p ON p.category = c.name
+   LEFT JOIN products p ON p.category_id = c.id
     GROUP BY c.id ORDER BY c.name ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
