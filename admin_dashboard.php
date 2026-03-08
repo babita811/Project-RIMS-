@@ -15,6 +15,9 @@ $lowStock       = $conn->query("SELECT COUNT(*) as c FROM products WHERE quantit
 $outOfStock     = $conn->query("SELECT COUNT(*) as c FROM products WHERE quantity = 0")->fetch_assoc()['c'];
 $totalCustomers = $conn->query("SELECT COUNT(*) as c FROM users WHERE role = 'user'")->fetch_assoc()['c'];
 
+// ✅ FIXED: Unread messages count for navbar badge
+$unreadMessages = $conn->query("SELECT COUNT(*) as c FROM messages WHERE is_read = 0")->fetch_assoc()['c'];
+
 // Recent sales
 $recentSales = $conn->query("
     SELECT s.id, p.name as product, p.image, u.name as customer,
@@ -71,6 +74,17 @@ $recentSales = $conn->query("
             margin-left: auto;
             margin-right: 0.5rem;
         }
+        /* ✅ Badge style */
+        .unread-badge {
+            background: #ff4444;
+            color: white;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            font-weight: 700;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
 
         .container {
             width: 92%; max-width: 1200px;
@@ -78,31 +92,20 @@ $recentSales = $conn->query("
             position: relative; z-index: 1;
         }
 
-        .welcome {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .welcome h2 {
-            font-size: 2rem; font-weight: 700;
-            color: #c2185b; margin-bottom: 0.3rem;
-        }
+        .welcome { text-align: center; margin-bottom: 2rem; }
+        .welcome h2 { font-size: 2rem; font-weight: 700; color: #c2185b; margin-bottom: 0.3rem; }
         .welcome p { color: #888; font-size: 0.9rem; }
 
         /* Stat cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 16px;
-            margin-bottom: 2rem;
+            gap: 16px; margin-bottom: 2rem;
         }
         .stat-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.4rem 1.2rem;
-            text-align: center;
-            box-shadow: 0 6px 20px rgba(214,51,132,0.12);
-            transition: transform 0.2s, box-shadow 0.2s;
-            border-top: 4px solid #d63384;
+            background: white; border-radius: 16px; padding: 1.4rem 1.2rem;
+            text-align: center; box-shadow: 0 6px 20px rgba(214,51,132,0.12);
+            transition: transform 0.2s, box-shadow 0.2s; border-top: 4px solid #d63384;
         }
         .stat-card:hover { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(214,51,132,0.2); }
         .stat-card.warning { border-top-color: #ff9800; }
@@ -119,57 +122,39 @@ $recentSales = $conn->query("
 
         /* Quick actions */
         .section-title {
-            font-size: 1.1rem; font-weight: 700;
-            color: #c2185b; margin-bottom: 1rem;
+            font-size: 1.1rem; font-weight: 700; color: #c2185b; margin-bottom: 1rem;
             display: flex; align-items: center; gap: 0.5rem;
         }
-
         .actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 2rem;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px; margin-bottom: 2rem;
         }
         .action-card {
-            display: block;
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 6px 20px rgba(214,51,132,0.1);
-            text-decoration: none;
-            color: inherit;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border-bottom: 3px solid transparent;
+            display: block; background: white; border-radius: 16px; padding: 1.5rem;
+            text-align: center; box-shadow: 0 6px 20px rgba(214,51,132,0.1);
+            text-decoration: none; color: inherit;
+            transition: transform 0.2s, box-shadow 0.2s; border-bottom: 3px solid transparent;
         }
         .action-card:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(214,51,132,0.2); border-bottom-color: #d63384; }
         .action-card i { font-size: 2rem; color: #d63384; display: block; margin-bottom: 0.7rem; }
         .action-card h3 { font-size: 1rem; font-weight: 700; color: #333; margin-bottom: 0.3rem; }
         .action-card p { font-size: 0.8rem; color: #999; }
 
-        /* Recent sales table */
-        .recent-wrap {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 6px 20px rgba(214,51,132,0.1);
-            overflow: hidden;
-        }
+        /* Recent sales */
+        .recent-wrap { background: white; border-radius: 16px; box-shadow: 0 6px 20px rgba(214,51,132,0.1); overflow: hidden; }
         .recent-header {
             background: linear-gradient(90deg, #d63384, #c2185b);
-            padding: 1rem 1.5rem;
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
         }
         .recent-header span { color: white; font-weight: 700; font-size: 1rem; }
         .recent-header a { color: rgba(255,255,255,0.8); font-size: 0.82rem; text-decoration: none; }
         .recent-header a:hover { color: white; }
-
         table { width: 100%; border-collapse: collapse; }
         thead th { background: #fce8f2; color: #c2185b; padding: 10px 16px; text-align: left; font-size: 0.82rem; font-weight: 700; }
         tbody tr { border-bottom: 1px solid #fce8f2; transition: background 0.15s; }
         tbody tr:hover { background: #fff5fb; }
         tbody tr:last-child { border-bottom: none; }
         td { padding: 10px 16px; font-size: 0.85rem; color: #333; vertical-align: middle; }
-
         .product-cell { display: flex; align-items: center; gap: 10px; }
         .product-cell img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; }
         .amount { font-weight: 700; color: #d63384; }
@@ -200,7 +185,13 @@ for (let i = 0; i < 18; i++) {
     <a href="analytics.php">Analytics</a>
     <a href="view_sales.php">View Sales</a>
     <span class="admin-name"><i class="fas fa-user-shield"></i> <?= htmlspecialchars($_SESSION['admin']) ?></span>
-    <a href="messages.php">Messages</a>
+    <!-- ✅ FIXED: Messages with unread badge -->
+    <a href="messages.php">
+        Messages
+        <?php if ($unreadMessages > 0): ?>
+            <span class="unread-badge"><?= $unreadMessages ?></span>
+        <?php endif; ?>
+    </a>
     <a href="logout.php" class="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
 </div>
 

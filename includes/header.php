@@ -1,4 +1,13 @@
-
+<?php
+// Fetch unread message count for navbar badge
+$unreadCount = 0;
+if (isset($conn)) {
+    $unreadResult = $conn->query("SELECT COUNT(*) as c FROM messages WHERE is_read = 0");
+    if ($unreadResult) {
+        $unreadCount = $unreadResult->fetch_assoc()['c'];
+    }
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -21,6 +30,18 @@
         .price-wrapper { display:flex; align-items:center; }
         .price-wrapper span { padding:10px; background:#eee; border-radius:8px 0 0 8px; border:1px solid #ccc; }
         .price-wrapper input { flex:1; border-radius:0 8px 8px 0; border-left:none; padding:12px; }
+
+        /* Unread badge */
+        .unread-badge {
+            background: #ff4444;
+            color: white;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            font-weight: 700;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -29,6 +50,14 @@
     <a href="admin_dashboard.php" class="<?= $page=='admin_dashboard.php' ? 'active' : '' ?>">Dashboard</a>
     <a href="add_product.php" class="<?= $page=='add_product.php' ? 'active' : '' ?>">Add Flower</a>
     <a href="view_products.php" class="<?= $page=='view_products.php' ? 'active' : '' ?>">View Flowers</a>
-    <a href="sales.php">Sales</a>
+    <a href="sales.php" class="<?= $page=='sales.php' ? 'active' : '' ?>">Sales</a>
+    <a href="analytics.php" class="<?= $page=='analytics.php' ? 'active' : '' ?>">Analytics</a>
+    <a href="view_sales.php" class="<?= $page=='view_sales.php' ? 'active' : '' ?>">View Sales</a>
+    <a href="messages.php" class="<?= $page=='messages.php' ? 'active' : '' ?>">
+        Messages
+        <?php if ($unreadCount > 0): ?>
+            <span class="unread-badge"><?= $unreadCount ?></span>
+        <?php endif; ?>
+    </a>
     <a href="logout.php">Logout</a>
 </div>

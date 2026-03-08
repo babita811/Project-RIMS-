@@ -88,6 +88,8 @@ if (isset($_POST['checkout'])) {
     $city     = trim($_POST['city'] ?? '');
     $note     = trim($_POST['note'] ?? '');
 
+    $phone    = trim($_POST['phone'] ?? $userData['phone'] ?? '');
+
     // Save phone/address/city back to users table for future pre-fill
     if (!empty($address) && !empty($city)) {
         $saveUser = $conn->prepare("UPDATE users SET phone = ?, address = ?, city = ? WHERE id = ?");
@@ -95,8 +97,6 @@ if (isset($_POST['checkout'])) {
         $saveUser->execute();
         $saveUser->close();
     }
-
-    $phone    = trim($_POST['phone'] ?? $userData['phone'] ?? '');
     if (empty($address) || empty($city) || empty($phone)) {
         $error = "Please fill in your phone, address and city.";
     } elseif (!empty($_SESSION['cart'])) {
@@ -356,6 +356,78 @@ $delivery = $_SESSION['delivery_info'] ?? [];
       .cart-item { grid-template-columns: 60px 1fr; }
       .form-row { grid-template-columns: 1fr; }
     }
+
+    /* ── Override readonly-field "Not set" from homepage.css ── */
+    .readonly-field {
+      padding: 0.7rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.92rem;
+      color: var(--dark);
+      background: var(--pink-soft);
+    }
+    .readonly-field::after { content: none !important; }
+
+    /* ── Stock Alert Modal ── */
+    #stockModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+    #stockModal.show { display: flex; }
+    .stock-modal-box {
+      background: #fff;
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      max-width: 340px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(232,69,122,0.25);
+      border-top: 4px solid var(--pink);
+      animation: popIn 0.25s ease;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .stock-modal-icon {
+      width: 70px; height: 70px;
+      background: #fff0f8;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.2rem;
+      border: 2px solid #f5d0ef;
+    }
+    .stock-modal-icon i { font-size: 2rem; color: var(--pink); }
+    .stock-modal-box h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem; font-weight: 900;
+      color: #333; margin-bottom: 0.5rem;
+    }
+    .stock-modal-box p {
+      color: #888; font-size: 0.92rem; margin-bottom: 1.5rem;
+    }
+    .stock-modal-box p span {
+      color: var(--pink); font-weight: 700; font-size: 1rem;
+    }
+    .btn-modal-ok {
+      background: var(--pink);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      padding: 0.7rem 2.5rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      box-shadow: 0 6px 20px rgba(232,69,122,0.3);
+    }
+    .btn-modal-ok:hover { background: var(--rose); transform: translateY(-2px); }
   </style>
 </head>
 <body>
@@ -447,7 +519,18 @@ $delivery = $_SESSION['delivery_info'] ?? [];
 
     <!-- LEFT: Cart items -->
     <div>
-      <?php foreach ($cart as $idx => $item): ?>
+      <?php
+      // Fetch current stock for each item to enforce limit in JS
+      foreach ($cart as $idx => &$item) {
+          $s = $conn->prepare("SELECT quantity FROM products WHERE name = ?");
+          $s->bind_param("s", $item["name"]);
+          $s->execute();
+          $row2 = $s->get_result()->fetch_assoc();
+          $s->close();
+          $item["stock"] = $row2 ? intval($row2["quantity"]) : 9999;
+      }
+      unset($item);
+      foreach ($cart as $idx => $item): ?>
         <div class="cart-item">
           <img src="uploads/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
           <div class="cart-item-info">
@@ -461,7 +544,7 @@ $delivery = $_SESSION['delivery_info'] ?? [];
               <?= intval($item['quantity']) <= 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : '' ?>>−</button>
             <input type="number" name="quantities[<?= $idx ?>]" id="qty_<?= $idx ?>"
               value="<?= intval($item['quantity']) ?>" min="1" readonly style="pointer-events:none;">
-            <button type="button" onclick="changeItemQty(<?= $idx ?>, 1)">+</button>
+            <button type="button" onclick="changeItemQty(<?= $idx ?>, 1)" data-max="<?= $item['stock'] ?? 9999 ?>">+</button>
           </div>
           <button type="button" class="btn-remove" onclick="removeItem(<?= $idx ?>)" title="Remove">
             <i class="fas fa-times"></i>
@@ -585,6 +668,18 @@ $delivery = $_SESSION['delivery_info'] ?? [];
   <?php endif; ?>
 <?php endif; ?>
 
+<!-- Stock Alert Modal -->
+<div id="stockModal">
+  <div class="stock-modal-box">
+    <div class="stock-modal-icon">
+      <i class="fas fa-box-open"></i>
+    </div>
+    <h3>Limited Stock!</h3>
+    <p id="stockModalMsg">Only <span id="stockModalQty">0</span> units available.</p>
+    <button class="btn-modal-ok" onclick="closeStockModal()">Got it!</button>
+  </div>
+</div>
+
 </div>
 
 <script>
@@ -593,6 +688,14 @@ function changeItemQty(idx, delta) {
   var current = parseInt(input.value) || 1;
   var newVal  = current + delta;
   if (newVal < 1) return;
+
+  // Get stock limit from + button's data-max attribute
+  var plusBtn = input.nextElementSibling;
+  var maxStock = parseInt(plusBtn.getAttribute("data-max")) || 9999;
+  if (newVal > maxStock) {
+    showStockModal(maxStock);
+    return;
+  }
 
   // Update displayed value
   input.value = newVal;
@@ -622,6 +725,18 @@ function removeItem(idx) {
   document.getElementById("removeIndex").value = idx;
   document.getElementById("removeForm").submit();
 }
+function showStockModal(max) {
+  document.getElementById("stockModalQty").textContent = max;
+  document.getElementById("stockModal").classList.add("show");
+}
+function closeStockModal() {
+  document.getElementById("stockModal").classList.remove("show");
+}
+// Close on backdrop click
+document.getElementById("stockModal").addEventListener("click", function(e) {
+  if (e.target === this) closeStockModal();
+});
+
 </script>
 
 </body>

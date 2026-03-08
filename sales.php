@@ -143,6 +143,16 @@ $todayTotal = array_sum(array_column($todaySales, 'subtotal'));
             background: #fff;
         }
 
+        /* Stock indicator */
+        .stock-indicator {
+            font-size: 0.78rem;
+            margin-top: 5px;
+            font-weight: 600;
+            display: none;
+        }
+        .stock-indicator.low  { color: #e74c3c; }
+        .stock-indicator.good { color: #27ae60; }
+
         /* Live preview */
         .preview {
             background: linear-gradient(135deg, #ffe0f0, #fff0f7);
@@ -230,8 +240,8 @@ $todayTotal = array_sum(array_column($todaySales, 'subtotal'));
         <?php if (empty($products)): ?>
             <div class="empty">
                 <i class="fas fa-box-open"></i>
-                <p>No flowers in stock.<br><a href="categories.php">Categories</a>
-    <a href="add_product.php" style="color:#d63384;">Add some flowers</a> first.</p>
+                <p>No flowers in stock.<br>
+                <a href="add_product.php" style="color:#d63384;">Add some flowers</a> first.</p>
             </div>
         <?php else: ?>
         <form method="POST" id="saleForm">
@@ -255,7 +265,10 @@ $todayTotal = array_sum(array_column($todaySales, 'subtotal'));
             <div class="form-group">
                 <label><i class="fas fa-sort-numeric-up"></i> Quantity</label>
                 <input type="number" name="quantity" id="qtyInput"
-                       min="1" value="1" required onchange="updatePreview()" oninput="updatePreview()">
+                       min="1" max="9999" value="1" required
+                       onchange="updatePreview()" oninput="updatePreview()">
+                <!-- Stock indicator shown after flower is selected -->
+                <div class="stock-indicator" id="stockIndicator"></div>
             </div>
 
             <!-- Live total preview -->
@@ -267,6 +280,10 @@ $todayTotal = array_sum(array_column($todaySales, 'subtotal'));
                 <div class="preview-row">
                     <span>Quantity</span>
                     <span id="prevQty">0</span>
+                </div>
+                <div class="preview-row">
+                    <span>Available Stock</span>
+                    <span id="prevStock">0</span>
                 </div>
                 <div class="preview-total">
                     <span>Total</span>
@@ -318,24 +335,47 @@ $todayTotal = array_sum(array_column($todaySales, 'subtotal'));
 </div>
 
 <script>
-var products = <?= json_encode(array_column($products, null, 'id')) ?>;
-
 function updatePreview() {
-    var select = document.getElementById('productSelect');
-    var qty    = parseInt(document.getElementById('qtyInput').value) || 0;
-    var preview = document.getElementById('preview');
+    var select   = document.getElementById('productSelect');
+    var qtyInput = document.getElementById('qtyInput');
+    var qty      = parseInt(qtyInput.value) || 0;
+    var preview  = document.getElementById('preview');
+    var stockIndicator = document.getElementById('stockIndicator');
 
     if (!select.value || qty < 1) {
         preview.classList.remove('show');
+        stockIndicator.style.display = 'none';
         return;
     }
 
     var opt   = select.options[select.selectedIndex];
     var price = parseFloat(opt.getAttribute('data-price')) || 0;
+    var stock = parseInt(opt.getAttribute('data-stock')) || 1;
+
+    // ── Set max to available stock ──
+    qtyInput.max = stock;
+
+    // ── If entered qty exceeds stock, cap it ──
+    if (qty > stock) {
+        qtyInput.value = stock;
+        qty = stock;
+    }
+
+    // ── Show stock indicator ──
+    stockIndicator.style.display = 'block';
+    if (stock <= 5) {
+        stockIndicator.textContent = '⚠️ Only ' + stock + ' left in stock!';
+        stockIndicator.className = 'stock-indicator low';
+    } else {
+        stockIndicator.textContent = '✅ ' + stock + ' available in stock';
+        stockIndicator.className = 'stock-indicator good';
+    }
+
     var total = price * qty;
 
     document.getElementById('prevPrice').textContent = 'Rs ' + price.toLocaleString();
     document.getElementById('prevQty').textContent   = qty;
+    document.getElementById('prevStock').textContent = stock;
     document.getElementById('prevTotal').textContent = 'Rs ' + total.toLocaleString();
     preview.classList.add('show');
 }
