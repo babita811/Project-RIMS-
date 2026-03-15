@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin'])) {
+if (!isset($_SESSION['isClientLoggedIn']) || $_SESSION['clientRole'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
@@ -184,7 +184,7 @@ for (let i = 0; i < 18; i++) {
     <a href="sales.php">Sales</a>
     <a href="analytics.php">Analytics</a>
     <a href="view_sales.php">View Sales</a>
-    <span class="admin-name"><i class="fas fa-user-shield"></i> <?= htmlspecialchars($_SESSION['admin']) ?></span>
+    <span class="admin-name"><i class="fas fa-user-shield"></i> <?= htmlspecialchars($_SESSION['clientName']) ?></span>
     <!-- ✅ FIXED: Messages with unread badge -->
     <a href="messages.php">
         Messages
@@ -198,7 +198,7 @@ for (let i = 0; i < 18; i++) {
 <div class="container">
 
     <div class="welcome">
-        <h2>🌸 Welcome back, <?= htmlspecialchars($_SESSION['admin']) ?>!</h2>
+        <h2>🌸 Welcome back, <?= htmlspecialchars($_SESSION['clientName']) ?>!</h2>
         <p><?= date('l, d F Y') ?></p>
     </div>
 

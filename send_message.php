@@ -4,53 +4,48 @@ include 'db.php';
 
 header('Content-Type: application/json');
 
-// Auto-create messages table if it doesn't exist
-$conn->query("
-    CREATE TABLE IF NOT EXISTS messages (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        email VARCHAR(150) NOT NULL,
-        phone VARCHAR(20) DEFAULT '',
-        message TEXT NOT NULL,
-        is_read TINYINT(1) DEFAULT 0,
-        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-");
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'error' => 'Invalid request.']);
     exit();
 }
 
-$name    = trim($_POST['name']    ?? '');
-$email   = trim($_POST['email']   ?? '');
-$phone   = trim($_POST['phone']   ?? '');
-$message = trim($_POST['message'] ?? '');
+// Read JSON body
+$data    = json_decode(file_get_contents('php://input'), true);
+$phone   = trim($data['phone']   ?? '');
+$message = trim($data['message'] ?? '');
 
-if (empty($name) || empty($email) || empty($message)) {
-    echo json_encode(['success' => false, 'error' => 'Please fill in all required fields.']);
+// Use session values — cannot be faked
+$name  = htmlspecialchars($_SESSION['clientName']  ?? '');
+$email = htmlspecialchars($_SESSION['clientEmail'] ?? '');
+
+if (empty($message)) {
+    echo json_encode(['success' => false, 'error' => 'Please write your message.']);
     exit();
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(['success' => false, 'error' => 'Please enter a valid email address.']);
+if (empty($name) || empty($email)) {
+    echo json_encode(['success' => false, 'error' => 'Session expired. Please login again.']);
     exit();
 }
 
-$user_id = $_SESSION['clientId'] ?? NULL;
-$stmt = $conn->prepare("INSERT INTO messages (name, email, phone, message, user_id) VALUES (?, ?, ?, ?, ?)");
+$client_id = $_SESSION['clientId'] ?? NULL;
+
+$stmt = $conn->prepare(
+    "INSERT INTO messages (user_id, name, email, phone, message, is_read, sent_at)
+     VALUES (?, ?, ?, ?, ?, 0, NOW())"
+);
 
 if (!$stmt) {
-    echo json_encode(['success' => false, 'error' => 'Database error: ' . $conn->error]);
+    echo json_encode(['success' => false, 'error' => 'DB error: ' . $conn->error]);
     exit();
 }
 
-$stmt->bind_param("ssssi", $name, $email, $phone, $message, $user_id);
+$stmt->bind_param("issss", $client_id, $name, $email, $phone, $message);
 
 if ($stmt->execute()) {
     echo json_encode(['success' => true]);
 } else {
-    echo json_encode(['success' => false, 'error' => 'Failed to save message: ' . $stmt->error]);
+    echo json_encode(['success' => false, 'error' => 'Failed: ' . $stmt->error]);
 }
 $stmt->close();
 ?>

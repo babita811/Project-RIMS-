@@ -39,6 +39,8 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
     <a href="#about">About Us</a>
     <a href="#products">Products</a>
     <a href="#contact">Contact</a>
+    <a href="my_messages.php" style="color:#f17dda;">My Messages</a>
+    
   </nav>
 
   <div class="icons">
@@ -186,7 +188,7 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
       </div>
 
       <!-- ── Shown when logged in ── -->
-      <form id="contactForm" action="" onsubmit="handleContactSubmit(event)" style="display:none;">
+      <form id="contactForm" action="" onsubmit="handleContactSubmit(event)" style="display:block;">
         <h3>Get in Touch</h3>
 
         <!-- Success banner (hidden until submit) -->
@@ -217,12 +219,11 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
           color:#c0392b;
           font-size:0.9rem;
         "></div>
-
-        <input type="text"  id="contactName"    placeholder="Your Name"    class="box" required>
-        <input type="email" id="contactEmail"   placeholder="Your Email"   class="box" required>
-        <input type="tel"   id="contactPhone"   placeholder="Your Phone"   class="box">
-        <textarea           id="contactMessage" placeholder="Your Message" class="box" required></textarea>
-        <input type="submit" value="Send Message" class="btn" id="contactSubmitBtn">
+<input type="text"  id="contactName"  class="box" value="<?= $clientName ?>" readonly>
+<input type="email" id="contactEmail" class="box" value="<?= htmlspecialchars($_SESSION['clientEmail'] ?? '') ?>" readonly>
+<input type="tel"   id="contactPhone" placeholder="Your Phone" class="box">
+<textarea           id="contactMessage" placeholder="Your Message" class="box" required></textarea>
+<input type="submit" value="Send Message" class="btn" id="contactSubmitBtn">
       </form>
 
     </div>
@@ -457,14 +458,15 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
     }
     var form  = document.getElementById("contactForm");
     var guard = document.getElementById("contactLoginGuard");
-    if (IS_LOGGED_IN) {
-      form.style.display  = "block";
-      guard.style.display = "none";
-      if (CLIENT_NAME) document.getElementById("contactName").value = CLIENT_NAME;
-    } else {
-      form.style.display  = "none";
-      guard.style.display = "block";
-    }
+  if (IS_LOGGED_IN) {
+    if (form)  form.style.display  = "block";
+    if (guard) guard.style.display = "none";
+    var nameField = document.getElementById("contactName");
+    if (nameField && CLIENT_NAME) nameField.value = CLIENT_NAME;
+} else {
+    if (form)  form.style.display  = "none";
+    if (guard) guard.style.display = "block";
+}
   });
 
   function goToCart() {
@@ -474,61 +476,71 @@ $categories = $conn->query("SELECT name, icon FROM categories ORDER BY name ASC"
       window.location.href = "login.php";
     }
   }
-
+ 
   function handleContactSubmit(e) {
     e.preventDefault();
-    var name    = document.getElementById("contactName").value.trim();
-    var email   = document.getElementById("contactEmail").value.trim();
-    var phone   = document.getElementById("contactPhone").value.trim();
-    var message = document.getElementById("contactMessage").value.trim();
-    var err = document.getElementById("contactError");
-    var ok  = document.getElementById("contactSuccess");
-    var btn = document.getElementById("contactSubmitBtn");
-    err.style.display = ok.style.display = "none";
-
+ 
+    const name    = document.getElementById("contactName").value.trim();
+    const email   = document.getElementById("contactEmail").value.trim();
+    const phone   = document.getElementById("contactPhone").value.trim();
+    const message = document.getElementById("contactMessage").value.trim();
+    const errorEl   = document.getElementById("contactError");
+    const successEl = document.getElementById("contactSuccess");
+    const btn       = document.getElementById("contactSubmitBtn");
+ 
+    errorEl.style.display   = "none";
+    successEl.style.display = "none";
+ 
     if (!name || !email || !message) {
-      err.textContent = "❌ Please fill in your name, email and message.";
-      err.style.display = "block"; return;
+      errorEl.textContent   = "❌ Please fill in your name, email and message.";
+      errorEl.style.display = "block";
+      return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      err.textContent = "❌ Please enter a valid email address.";
-      err.style.display = "block"; return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      errorEl.textContent   = "❌ Please enter a valid email address.";
+      errorEl.style.display = "block";
+      return;
     }
-
-    // Disable button while sending
-    btn.value = "Sending..."; btn.disabled = true;
-
-    var formData = new FormData();
-    formData.append("name",    name);
-    formData.append("email",   email);
-    formData.append("phone",   phone);
-    formData.append("message", message);
-
-    fetch("send_message.php", { method: "POST", body: formData })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.success) {
-          ok.style.display = "block";
-          btn.value = "Sent ✓";
-          document.getElementById("contactName").value    = "";
-          document.getElementById("contactEmail").value   = "";
-          document.getElementById("contactPhone").value   = "";
-          document.getElementById("contactMessage").value = "";
-          setTimeout(function() {
-            ok.style.display = "none";
-            btn.value = "Send Message"; btn.disabled = false;
-          }, 4000);
-        } else {
-          err.textContent = "❌ " + (data.error || "Failed to send. Please try again.");
-          err.style.display = "block";
-          btn.value = "Send Message"; btn.disabled = false;
-        }
-      })
-      .catch(function() {
-        err.textContent = "❌ Network error. Please try again.";
-        err.style.display = "block";
-        btn.value = "Send Message"; btn.disabled = false;
-      });
+ 
+    btn.value    = "Sending...";
+    btn.disabled = true;
+ 
+    fetch("send_message.php", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ name, email, phone, message })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        successEl.style.display = "block";
+        btn.value               = "Message Sent ✓";
+        btn.style.background    = "#aafdfd";
+        btn.style.color         = "#333";
+        document.getElementById("contactEmail").value   = "";
+        document.getElementById("contactPhone").value   = "";
+        document.getElementById("contactMessage").value = "";
+        setTimeout(() => {
+          successEl.style.display = "none";
+          btn.value               = "Send Message";
+          btn.disabled            = false;
+          btn.style.background    = "";
+          btn.style.color         = "";
+        }, 4000);
+      } else {
+        errorEl.textContent   = "❌ " + (data.error || "Could not send. Please try again.");
+        errorEl.style.display = "block";
+        btn.value             = "Send Message";
+        btn.disabled          = false;
+      }
+    })
+    .catch(() => {
+      errorEl.textContent   = "❌ Network error. Please try again.";
+      errorEl.style.display = "block";
+      btn.value             = "Send Message";
+      btn.disabled          = false;
+    });
   }
 </script>
 

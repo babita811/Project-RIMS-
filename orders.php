@@ -152,6 +152,7 @@ $totalOrders = count($orders);
     <a href="index.php#products">Products</a>
     <a href="index.php#contact">Contact</a>
     <a href="orders.php" style="color:var(--pink); font-weight:600;">My Orders</a>
+    <a href="my_messages.php" style="color:#f17dda;">My Messages</a>
   </nav>
   <div class="icons">
     <i class="fas fa-user" style="color:var(--pink);" title="<?= $clientName ?>"></i>
