@@ -1,7 +1,6 @@
 <?php
 session_start();
 
-// Session guard — redirect if not logged in
 if (!isset($_SESSION['isClientLoggedIn']) || $_SESSION['isClientLoggedIn'] !== true) {
     header("Location: login.php");
     exit();
@@ -28,7 +27,7 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
       --border:    #f5d0ef;
     }
 
-    body { font-family: 'Poppins', sans-serif; background: var(--bg); }
+    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #ffe6f0, #fff5f9, #ffe0ec); }
 
     .msgs-section {
       max-width: 820px;
@@ -40,7 +39,6 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
     .page-heading span { color: var(--pink); }
     .page-sub { color: #777; font-size: 0.95rem; margin-bottom: 2rem; }
 
-    /* ── Summary pills ── */
     .top-bar {
       display: flex; justify-content: space-between;
       align-items: center; margin-bottom: 1.5rem;
@@ -51,22 +49,21 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
       background: #fef0fb; border: 1.5px solid var(--border);
       border-radius: 20px; padding: 0.4rem 1rem;
       font-size: 0.85rem; font-weight: 600; color: var(--pink-dark);
+      box-shadow: 0 2px 8px rgba(214,51,132,0.15);
     }
     .pill span { color: #333; }
 
-    /* ── Message thread card ── */
     .msg-thread {
       background: #fff;
       border-radius: 1rem;
       box-shadow: 0 4px 20px rgba(241,125,218,0.08);
-      border-left: 4px solid var(--pink);
+      border-left: 5px solid #d63384;
       margin-bottom: 1.2rem;
       overflow: hidden;
       transition: box-shadow 0.2s;
     }
     .msg-thread:hover { box-shadow: 0 8px 28px rgba(241,125,218,0.18); }
 
-    /* ── Customer message bubble ── */
     .customer-msg { padding: 1.2rem 1.5rem; }
     .customer-msg .msg-header {
       display: flex; justify-content: space-between;
@@ -93,14 +90,12 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
       border-radius: 20px; font-weight: 600;
     }
 
-    /* ── Admin replies ── */
     .replies-section {
       border-top: 1px solid #f5eef9;
-      background: #f0f7ff;
     }
     .reply-bubble {
       padding: 1rem 1.5rem;
-      border-bottom: 1px solid #e3f0ff;
+      border-bottom: 1px solid #eee;
     }
     .reply-bubble:last-child { border-bottom: none; }
     .reply-header {
@@ -110,7 +105,6 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
     }
     .reply-label {
       font-size: 0.78rem; font-weight: 700;
-      background: #e3f2fd; color: #0d47a1;
       padding: 0.2rem 0.8rem; border-radius: 20px;
     }
     .reply-time  { font-size: 0.78rem; color: #aaa; }
@@ -123,7 +117,6 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
       border-top: 1px solid #f5eef9;
     }
 
-    /* ── Empty state ── */
     .empty-state { text-align: center; padding: 4rem 2rem; color: #aaa; }
     .empty-state i { font-size: 4rem; color: #f5d0ef; display: block; margin-bottom: 1rem; }
     .empty-state h3 { font-size: 1.2rem; color: #bbb; margin-bottom: 0.5rem; }
@@ -137,7 +130,6 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
     }
     .btn-go:hover { background: var(--teal); color: #333; transform: translateY(-2px); }
 
-    /* ── Loading spinner ── */
     .loading { text-align: center; padding: 3rem; color: #bbb; font-size: 0.95rem; }
     .loading i {
       font-size: 2rem; color: var(--pink); display: block;
@@ -150,11 +142,30 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
       border-radius: 10px; padding: 1.2rem 1.5rem;
       color: #c0392b; font-size: 0.9rem; text-align: center;
     }
+
+    .followup-section {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #f5eef9;
+      background: #fef9ff;
+    }
+    .followup-section textarea {
+      width: 100%; min-height: 70px; padding: 10px 14px;
+      border: 1.5px solid #f5d0ef; border-radius: 8px;
+      font-family: 'Poppins', sans-serif; font-size: 14px;
+      resize: vertical; outline: none; box-sizing: border-box;
+    }
+    .followup-section textarea:focus { border-color: var(--pink); }
+    .followup-section button {
+      margin-top: 8px; padding: 0.6rem 1.5rem;
+      background: var(--pink); color: #fff; border: none;
+      border-radius: 8px; font-family: 'Poppins', sans-serif;
+      font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .followup-section button:hover { background: var(--pink-dark); }
   </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <a href="index.php" class="logo">RIMS<span>.</span></a>
   <nav class="navbar">
@@ -202,9 +213,6 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
 </div>
 
 <script>
-  // Email comes directly from PHP session — no localStorage needed
-  const clientEmail = <?= json_encode($clientEmail) ?>;
-
   window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('userIcon').style.color = '#aafdfd';
     loadMessages();
@@ -216,7 +224,7 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
       <i class="fas fa-circle-notch"></i> Loading your messages...
     </div>`;
 
-    fetch('get_my_replies.php?email=' + encodeURIComponent(clientEmail))
+    fetch('get_my_replies.php')
       .then(res => res.json())
       .then(data => {
         if (!data.success) {
@@ -235,7 +243,9 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
   function renderMessages(messages) {
     const list = document.getElementById('msgsList');
 
-    const totalReplies = messages.reduce((sum, m) => sum + m.replies.length, 0);
+    // Count only admin replies for "Replies Received"
+    const totalReplies = messages.reduce((sum, m) =>
+      sum + m.replies.filter(r => r.sender === 'admin').length, 0);
     document.getElementById('totalMsgs').textContent    = messages.length;
     document.getElementById('totalReplies').textContent = totalReplies;
 
@@ -253,7 +263,7 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
     }
 
     list.innerHTML = messages.map(m => {
-      const sentDate   = formatDate(m.sent_at);
+      const sentDate    = formatDate(m.sent_at);
       const statusBadge = m.is_read == 1
         ? `<span class="badge-read">✓ Seen by Admin</span>`
         : `<span class="badge-unread">⏳ Pending</span>`;
@@ -262,14 +272,14 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
       if (m.replies.length > 0) {
         repliesHTML = `<div class="replies-section">` +
           m.replies.map(r => `
-            <div class="reply-bubble">
+            <div class="reply-bubble" style="background:${r.sender === 'admin' ? '#f0f7ff' : '#fff0f7'};">
               <div class="reply-header">
-                <span class="reply-label">
-                  <i class="fas fa-store" style="margin-right:0.3rem;"></i> RIMS Support
+                <span class="reply-label" style="background:${r.sender === 'admin' ? '#e3f2fd' : '#fce4ec'};color:${r.sender === 'admin' ? '#0d47a1' : '#c2185b'};">
+                  ${r.sender === 'admin' ? '🏪 RIMS Support' : '👤 You'}
                 </span>
                 <span class="reply-time">${formatDate(r.time)}</span>
               </div>
-              <div class="reply-text">${esc(r.text).replace(/\n/g,'<br>')}</div>
+              <div class="reply-text">${esc(r.text).replace(/\n/g, '<br>')}</div>
             </div>
           `).join('') + `</div>`;
       } else {
@@ -291,24 +301,63 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
                 <span class="msg-time">${sentDate}</span>
               </div>
             </div>
-            <div class="msg-text">${esc(m.message).replace(/\n/g,'<br>')}</div>
+            <div class="msg-text">${esc(m.message).replace(/\n/g, '<br>')}</div>
           </div>
           ${repliesHTML}
+          <div class="followup-section">
+            <form onsubmit="sendReply(event, ${m.id})">
+              <textarea name="reply_text" placeholder="Write a follow-up message..." required></textarea>
+              <button type="submit">
+                <i class="fas fa-paper-plane" style="margin-right:5px;"></i> Send Follow-up
+              </button>
+            </form>
+          </div>
         </div>`;
     }).join('');
   }
 
+  function sendReply(e, messageId) {
+    e.preventDefault();
+    const form = e.target;
+    const text = form.reply_text.value.trim();
+    const btn  = form.querySelector('button');
+    if (!text) return;
+    btn.disabled     = true;
+    btn.textContent  = 'Sending...';
+    fetch('send_reply.php', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message_id: messageId, reply_text: text })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        form.reply_text.value = '';
+        loadMessages();
+      } else {
+        alert('Error: ' + data.error);
+        btn.disabled    = false;
+        btn.textContent = 'Send Follow-up';
+      }
+    })
+    .catch(() => {
+      alert('Network error. Please try again.');
+      btn.disabled    = false;
+      btn.textContent = 'Send Follow-up';
+    });
+  }
+
   function formatDate(str) {
     return new Date(str).toLocaleDateString('en-GB', {
-      day:'2-digit', month:'short', year:'numeric',
-      hour:'2-digit', minute:'2-digit'
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
   }
 
   function esc(str) {
     return String(str)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function handleUser() {

@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['isClientLoggedIn']) || $_SESSION['clientRole'] !== 'admin') {ESSION['clientRole'] !== 'admin') {
+if (!isset($_SESSION['isClientLoggedIn']) || $_SESSION['clientRole'] !== 'admin') {
     header("Location: login.php");
     exit();
 }

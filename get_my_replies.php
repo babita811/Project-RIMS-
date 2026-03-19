@@ -9,17 +9,15 @@ if (!isset($_SESSION['isClientLoggedIn']) || $_SESSION['isClientLoggedIn'] !== t
     exit();
 }
 
-// Use user_id from session — reliable, cannot be faked
-$user_id = $_SESSION['clientId'];
+$client_id = $_SESSION['clientId'];
 
-// Fetch all messages sent by this client
 $stmt = $conn->prepare(
-    "SELECT id, name, email, message, is_read, sent_at
+    "SELECT id, message, is_read, sent_at
      FROM messages
      WHERE user_id = ?
      ORDER BY sent_at DESC"
 );
-$stmt->bind_param("i", $user_id);
+$stmt->bind_param("i", $client_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $stmt->close();
@@ -30,7 +28,7 @@ while ($row = $result->fetch_assoc()) {
     $msg_id = $row['id'];
 
     $rStmt = $conn->prepare(
-        "SELECT reply_text, replied_at FROM message_replies
+        "SELECT reply_text, replied_at, sender FROM message_replies
          WHERE message_id = ? ORDER BY replied_at ASC"
     );
     $rStmt->bind_param("i", $msg_id);
@@ -41,8 +39,9 @@ while ($row = $result->fetch_assoc()) {
     $replies = [];
     while ($r = $rResult->fetch_assoc()) {
         $replies[] = [
-            'text' => $r['reply_text'],
-            'time' => $r['replied_at']
+            'text'   => $r['reply_text'],
+            'time'   => $r['replied_at'],
+            'sender' => $r['sender']
         ];
     }
 

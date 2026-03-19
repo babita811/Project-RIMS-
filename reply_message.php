@@ -24,8 +24,10 @@ if (empty($reply_text)) {
 }
 
 $stmt = $conn->prepare(
-    "INSERT INTO message_replies (message_id, reply_text, replied_at) VALUES (?, ?, NOW())"
+    "INSERT INTO message_replies (message_id, reply_text, replied_at, sender)
+     VALUES (?, ?, NOW(), 'admin')"
 );
+
 $stmt->bind_param("is", $message_id, $reply_text);
 $stmt->execute();
 $stmt->close();

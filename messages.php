@@ -21,14 +21,15 @@ if (isset($_GET['delete'])) {
     $conn->query("DELETE FROM message_replies WHERE message_id = $id");
     $conn->query("DELETE FROM messages WHERE id = $id");
     header("Location: messages.php"); exit();
-}
-
-$messages = $conn->query(
-    "SELECT m.*, (SELECT COUNT(*) FROM message_replies r WHERE r.message_id = m.id) AS reply_count
-     FROM messages m ORDER BY m.sent_at DESC"
+}$messages = $conn->query(
+    "SELECT m.*, COALESCE(u.name, 'Guest') as name, COALESCE(u.email, 'N/A') as email,
+            (SELECT COUNT(*) FROM message_replies r WHERE r.message_id = m.id) AS reply_count
+     FROM messages m
+     LEFT JOIN users u ON m.user_id = u.id
+     ORDER BY m.sent_at DESC"
 );
-$unread = $conn->query("SELECT COUNT(*) as c FROM messages WHERE is_read = 0")->fetch_assoc()['c'];
 
+$unread = $conn->query("SELECT COUNT(*) as c FROM messages WHERE is_read = 0")->fetch_assoc()['c'];
 $status = '';
 if (isset($_GET['replied'])) {
     $status = $_GET['replied'] == 1
@@ -176,22 +177,23 @@ if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
             </form>
         </div>
 
-        <?php if ($hasReply): ?>
+<?php if ($hasReply): ?>
         <div class="prev-replies">
             <h4><i class="fas fa-history" style="margin-right:5px;"></i>Previous Replies (<?= $msg['reply_count'] ?>)</h4>
             <?php while ($r = $replies->fetch_assoc()): ?>
-            <div class="prev-reply-item">
+            <div class="prev-reply-item" style="background:<?= $r['sender']==='admin' ? '#e3f2fd' : '#fce4ec' ?>;">
+                <small style="font-weight:700; color:<?= $r['sender']==='admin' ? '#0d47a1' : '#c2185b' ?>;">
+                    <?= $r['sender']==='admin' ? '👨‍💼 Admin' : '👤 Customer' ?>
+                </small><br>
                 <?= nl2br(htmlspecialchars($r['reply_text'])) ?>
-                <div class="reply-time"><i class="fas fa-clock" style="margin-right:3px;"></i><?= date('d M Y, h:i A', strtotime($r['replied_at'])) ?></div>
+                <div class="reply-time"><?= date('d M Y, h:i A', strtotime($r['replied_at'])) ?></div>
             </div>
             <?php endwhile; ?>
         </div>
         <?php endif; ?>
-    </div>
-    <?php endwhile; ?>
+          <?php endwhile; ?>
     <?php endif; ?>
 </div>
-
 <script>
 function toggleReply(id) {
     const panel = document.getElementById('reply-' + id);
