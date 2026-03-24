@@ -42,8 +42,11 @@ if (isset($_POST['add_category'])) {
     } else {
         $stmt = $conn->prepare("INSERT INTO categories (name, icon) VALUES (?, ?)");
         $stmt->bind_param("ss", $name, $icon);
-        $success = $stmt->execute() ? "Category '{$name}' added!" : "Category already exists.";
-        if (!$stmt->execute()) $error = "Category already exists or error.";
+        if ($stmt->execute()) {
+            $success = "Category '{$name}' added!";
+        } else {
+            $error = "Category already exists or error.";
+        }
         $stmt->close();
     }
 }
@@ -68,11 +71,6 @@ if (isset($_POST['edit_category'])) {
             $stmt = $conn->prepare("UPDATE categories SET name = ?, icon = ? WHERE id = ?");
             $stmt->bind_param("ssi", $newName, $newIcon, $id);
             if ($stmt->execute()) {
-                // Update products using the old name
-                $upd = $conn->prepare("UPDATE products SET category = ? WHERE category = ?");
-                $upd->bind_param("ss", $newName, $oldName);
-                $upd->execute();
-                $upd->close();
                 $success = "Category updated successfully!";
             } else {
                 $error = "Update failed: " . $conn->error;
@@ -86,30 +84,24 @@ if (isset($_POST['edit_category'])) {
 if (isset($_POST['delete_category'])) {
     $id = intval($_POST['delete_id']);
 
-    $nameStmt = $conn->prepare("SELECT name FROM categories WHERE id = ?");
-    $nameStmt->bind_param("i", $id);
-    $nameStmt->execute();
-    $catRow = $nameStmt->get_result()->fetch_assoc();
-    $nameStmt->close();
+    // Check if any products use this category
+    $check = $conn->prepare("SELECT COUNT(*) as c FROM products WHERE category_id = ?");
+    $check->bind_param("i", $id);
+    $check->execute();
+    $result = $check->get_result()->fetch_assoc();
+    $check->close();
 
-    if (!$catRow) {
-        $error = "Category not found.";
+    if ($result['c'] > 0) {
+        $error = "Cannot delete. Products are using this category.";
     } else {
-        $catName = $catRow['name'];
-        $check = $conn->prepare("SELECT COUNT(*) as c FROM products WHERE LOWER(category) = LOWER(?)");
-        $check->bind_param("s", $catName);
-        $check->execute();
-        $cnt = $check->get_result()->fetch_assoc()['c'];
-        $check->close();
-
-        if ($cnt > 0) {
-            $error = "Cannot delete — {$cnt} product(s) use this category.";
+        $delete = $conn->prepare("DELETE FROM categories WHERE id = ?");
+        $delete->bind_param("i", $id);
+        if ($delete->execute()) {
+            $success = "Category deleted successfully.";
         } else {
-            $stmt = $conn->prepare("DELETE FROM categories WHERE id = ?");
-            $stmt->bind_param("i", $id);
-            $success = $stmt->execute() ? "Category deleted." : "Delete failed.";
-            $stmt->close();
+            $error = "Delete failed: " . $conn->error;
         }
+        $delete->close();
     }
 }
 
@@ -117,7 +109,7 @@ if (isset($_POST['delete_category'])) {
 $categories = $conn->query("
     SELECT c.id, c.name, c.icon, c.created_at, COUNT(p.id) as product_count
     FROM categories c
-   LEFT JOIN products p ON p.category_id = c.id
+    LEFT JOIN products p ON p.category_id = c.id
     GROUP BY c.id ORDER BY c.name ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
@@ -153,13 +145,11 @@ $emojis = ['🌹','🌸','🌷','🌺','🌻','🌼','💐','🌿','🍀','🌱'
         .msg.success { background: #e0fdf4; color: #065f46; border: 1px solid #6ee7b7; }
         .msg.error   { background: #ffe0f0; color: #c0392b; border: 1px solid #f17dda; }
 
-        /* Add form */
         .form-group { margin-bottom: 1rem; }
         .form-group label { display: block; font-size: 0.8rem; font-weight: 700; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.03em; }
         .form-group input[type=text] { width: 100%; padding: 0.72rem 1rem; border: 1.5px solid #f0d0e0; border-radius: 10px; font-family: 'Poppins', sans-serif; font-size: 0.92rem; color: #333; background: #fff9f5; outline: none; transition: border-color 0.2s; }
         .form-group input[type=text]:focus { border-color: #d63384; background: #fff; }
 
-        /* Emoji grids */
         .emoji-grid, .edit-emoji-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.5rem; }
         .emoji-btn { width: 36px; height: 36px; border: 1.5px solid #f0d0e0; border-radius: 8px; background: #fff9f5; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; padding: 0; }
         .emoji-btn:hover, .edit-emoji-btn:hover { background: #fce8f2; border-color: #d63384; transform: scale(1.15); }
@@ -169,7 +159,6 @@ $emojis = ['🌹','🌸','🌷','🌺','🌻','🌼','💐','🌿','🍀','🌱'
         .btn-add { width: 100%; padding: 0.85rem; background: #d63384; color: white; border: none; border-radius: 10px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 6px 18px rgba(214,51,132,0.25); display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
         .btn-add:hover { background: #b52b70; transform: translateY(-1px); }
 
-        /* Category list items */
         .cat-item { border: 1.5px solid #f0d0e0; border-radius: 12px; margin-bottom: 0.7rem; overflow: hidden; background: #fff9f5; transition: border-color 0.2s; }
         .cat-item:hover { border-color: #d63384; }
 
@@ -189,7 +178,6 @@ $emojis = ['🌹','🌸','🌷','🌺','🌻','🌼','💐','🌿','🍀','🌱'
         .btn-delete:hover:not(:disabled) { background: #ffe0f0; border-color: #f17dda; color: #c0392b; }
         .btn-delete:disabled { opacity: 0.35; cursor: not-allowed; }
 
-        /* Inline edit panel */
         .edit-panel { display: none; padding: 1rem; border-top: 1.5px dashed #f0d0e0; background: #fff; }
         .edit-panel.open { display: block; }
         .edit-grid { display: grid; grid-template-columns: 1fr auto; gap: 0.8rem; align-items: start; margin-bottom: 0.7rem; }
@@ -270,8 +258,6 @@ $emojis = ['🌹','🌸','🌷','🌺','🌻','🌼','💐','🌿','🍀','🌱'
                 $icon = !empty($cat['icon']) ? $cat['icon'] : '🌿';
             ?>
             <div class="cat-item" id="catrow-<?= $cat['id'] ?>">
-
-                <!-- Top row -->
                 <div class="cat-top">
                     <div class="cat-left">
                         <div class="cat-icon" id="preview-<?= $cat['id'] ?>"><?= $icon ?></div>
@@ -299,7 +285,6 @@ $emojis = ['🌹','🌸','🌷','🌺','🌻','🌼','💐','🌿','🍀','🌱'
                         </form>
                     </div>
                 </div>
-
             </div>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -319,14 +304,12 @@ function toggleEdit(id, name, icon) {
     var btn    = document.getElementById('editbtn-' + id);
     var isOpen = panel.classList.contains('open');
 
-    // Close all panels
     document.querySelectorAll('.edit-panel.open').forEach(p => p.classList.remove('open'));
     document.querySelectorAll('.btn-edit.active').forEach(b => b.classList.remove('active'));
 
     if (!isOpen) {
         panel.classList.add('open');
         btn.classList.add('active');
-        // Scroll into view smoothly
         document.getElementById('catrow-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
