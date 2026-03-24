@@ -1,0 +1,19 @@
+-- Step 1: Add reply_to_id column to messages table
+ALTER TABLE messages
+ADD COLUMN reply_to_id INT DEFAULT NULL,
+ADD CONSTRAINT fk_reply_to FOREIGN KEY (reply_to_id) REFERENCES messages(id) ON DELETE SET NULL;
+
+-- Step 2: Migrate reply data from message_replies into messages
+INSERT INTO messages (phone, message, is_read, sent_at, user_id, reply_to_id)
+SELECT 
+    m.phone,
+    mr.reply_text,
+    1,
+    mr.replied_at,
+    NULL,
+    mr.message_id
+FROM message_replies mr
+JOIN messages m ON m.id = mr.message_id;
+
+-- Step 3: Drop message_replies table
+DROP TABLE message_replies;
