@@ -20,9 +20,10 @@ if (empty($message)) {
 
 $client_id = $_SESSION['clientId'] ?? NULL;
 
+// reply_to_id is NULL for original messages
 $stmt = $conn->prepare(
-    "INSERT INTO messages (user_id, phone, message, is_read, sent_at)
-     VALUES (?, ?, ?, 0, NOW())"
+    "INSERT INTO messages (user_id, phone, message, is_read, sent_at, reply_to_id)
+     VALUES (?, ?, ?, 0, NOW(), NULL)"
 );
 
 if (!$stmt) {

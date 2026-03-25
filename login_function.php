@@ -30,7 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['isClientLoggedIn'] = true;
             $_SESSION['clientId']         = $user['id'];
             $_SESSION['clientName']       = $user['name'];
-            $_SESSION['clientEmail']      = $user['email'];   // ← added
+            $_SESSION['clientEmail']      = $user['email'];   
             $_SESSION['clientUsername']   = $user['username'];
             $_SESSION['clientRole']       = $user['role'];
 

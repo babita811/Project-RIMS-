@@ -7,37 +7,69 @@ if (!isset($_SESSION['isClientLoggedIn']) || $_SESSION['clientRole'] !== 'admin'
 require_once 'db.php';
 $page = basename($_SERVER['PHP_SELF']);
 
+// Mark single as read
 if (isset($_POST['mark_read'])) {
     $id = intval($_POST['message_id']);
     $conn->query("UPDATE messages SET is_read = 1 WHERE id = $id");
     header("Location: messages.php"); exit();
 }
+
+// Mark all as read
 if (isset($_POST['mark_all_read'])) {
     $conn->query("UPDATE messages SET is_read = 1");
     header("Location: messages.php"); exit();
 }
+
+// Delete message and its replies
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-    $conn->query("DELETE FROM message_replies WHERE message_id = $id");
-    $conn->query("DELETE FROM messages WHERE id = $id");
+    $conn->query("DELETE FROM messages WHERE id = $id OR reply_to_id = $id");
     header("Location: messages.php"); exit();
-}$messages = $conn->query(
-    "SELECT m.*, COALESCE(u.name, 'Guest') as name, COALESCE(u.email, 'N/A') as email,
-            (SELECT COUNT(*) FROM message_replies r WHERE r.message_id = m.id) AS reply_count
-     FROM messages m
+}
+
+// Send reply — insert into messages table with reply_to_id
+if (isset($_POST['send_reply'])) {
+    $parent_id  = intval($_POST['message_id']);
+    $reply_text = trim($_POST['reply_text']);
+
+    if (!empty($reply_text)) {
+        $stmt = $conn->prepare(
+            "INSERT INTO messages (phone, message, is_read, sent_at, reply_to_id)
+             VALUES ('', ?, 1, NOW(), ?)"
+        );
+        $stmt->bind_param("si", $reply_text, $parent_id);
+        $stmt->execute();
+        $stmt->close();
+
+        // Mark parent as read
+        $conn->query("UPDATE messages SET is_read = 1 WHERE id = $parent_id");
+    }
+    header("Location: messages.php?replied=1"); exit();
+}
+
+// Fetch only parent messages (not replies)
+$messages = $conn->query(
+    "SELECT m.*,
+            COALESCE(u.name, 'Guest') as sender_name,
+            COALESCE(u.email, 'N/A') as sender_email,
+            (SELECT COUNT(*) FROM messages r WHERE r.reply_to_id = m.id) AS reply_count
+     FROM   messages m
      LEFT JOIN users u ON m.user_id = u.id
-     ORDER BY m.sent_at DESC"
+     WHERE  m.reply_to_id IS NULL
+     ORDER  BY m.sent_at DESC"
 );
 
-$unread = $conn->query("SELECT COUNT(*) as c FROM messages WHERE is_read = 0")->fetch_assoc()['c'];
+if (!$messages) {
+    die("Query error: " . $conn->error);
+}
+
+$unread = $conn->query(
+    "SELECT COUNT(*) as c FROM messages WHERE is_read = 0 AND reply_to_id IS NULL"
+)->fetch_assoc()['c'];
+
 $status = '';
 if (isset($_GET['replied'])) {
-    $status = $_GET['replied'] == 1
-        ? '<div class="alert success">✅ Reply sent successfully!</div>'
-        : '<div class="alert warning">⚠️ Reply saved but email could not be sent.</div>';
-}
-if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
-    $status = '<div class="alert error">❌ Reply cannot be empty.</div>';
+    $status = '<div class="alert success">✅ Reply sent successfully!</div>';
 }
 ?>
 <!DOCTYPE html>
@@ -56,7 +88,7 @@ if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
         .navbar a.active { background: white; color: #d63384; font-weight: 700; }
         .navbar a.logout { margin-left: auto; background: rgba(255,255,255,0.15); }
         .unread-badge { background: #ff4444; color: white; border-radius: 50%; font-size: 0.7rem; padding: 1px 6px; font-weight: 700; margin-left: 3px; vertical-align: middle; }
-        .page-wrap { width: 92%; max-width: 1000px; margin: 28px auto; }
+        .page-wrap { width: 92%; max-width: 1000px; margin: 28px auto; position: relative; z-index: 1; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
         .page-header h2 { color: #c2185b; font-size: 1.6rem; font-weight: 700; }
         .btn { padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; font-family: 'Poppins', sans-serif; transition: 0.2s; text-decoration: none; display: inline-block; }
@@ -68,8 +100,20 @@ if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
         .alert.success { background: #e8f5e9; color: #1b5e20; border-left: 4px solid #43a047; }
         .alert.warning { background: #fff8e1; color: #e65100; border-left: 4px solid #ffa000; }
         .alert.error   { background: #fce4ec; color: #880e4f; border-left: 4px solid #e53935; }
-        .msg-card { background: white; border-radius: 14px; box-shadow: 0 4px 16px rgba(214,51,132,0.1); margin-bottom: 18px; overflow: hidden; border-left: 5px solid #d63384; }
+
+        /* Message cards */
+        .msg-card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(214,51,132,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+            border-left: 5px solid #d63384;
+            position: relative;
+            z-index: 1;
+        }
         .msg-card.unread { border-left-color: #e53935; background: #fff8f9; }
+
         .msg-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 20px 10px; flex-wrap: wrap; gap: 10px; }
         .sender-name { font-size: 1.05rem; font-weight: 700; color: #c2185b; }
         .sender-info { font-size: 13px; color: #777; margin-top: 3px; }
@@ -81,6 +125,8 @@ if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
         .msg-time { font-size: 12px; color: #aaa; }
         .msg-body { padding: 4px 20px 14px; color: #333; font-size: 14.5px; line-height: 1.6; border-top: 1px solid #f8e0ec; }
         .msg-actions { display: flex; gap: 8px; padding: 10px 20px 14px; flex-wrap: wrap; border-top: 1px solid #f8e0ec; }
+
+        /* Reply panel */
         .reply-panel { display: none; background: #f0f7ff; border-top: 1px solid #c8e6ff; padding: 16px 20px; }
         .reply-panel.open { display: block; }
         .reply-panel h4 { color: #0d47a1; font-size: 14px; margin-bottom: 8px; }
@@ -88,13 +134,17 @@ if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
         .reply-panel textarea { width: 100%; min-height: 90px; padding: 10px 14px; border: 1.5px solid #90caf9; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 14px; resize: vertical; outline: none; }
         .reply-panel textarea:focus { border-color: #1565c0; }
         .reply-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+        /* Previous replies */
         .prev-replies { background: #f9f9f9; border-top: 1px solid #eee; padding: 12px 20px; }
         .prev-replies h4 { font-size: 13px; color: #777; margin-bottom: 8px; font-weight: 600; }
-        .prev-reply-item { background: #e3f2fd; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 13.5px; color: #333; line-height: 1.5; }
+        .prev-reply-item { border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 13.5px; color: #333; line-height: 1.5; }
+        .prev-reply-item.admin-reply    { background: #e3f2fd; }
+        .prev-reply-item.customer-reply { background: #fce4ec; }
         .prev-reply-item .reply-time { font-size: 11px; color: #888; margin-top: 5px; }
+
         .empty-state { text-align: center; padding: 60px 20px; color: #bbb; }
         .empty-state i { font-size: 3rem; display: block; margin-bottom: 12px; }
-        
     </style>
 </head>
 <body>
@@ -113,7 +163,11 @@ if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
 
 <div class="page-wrap">
     <div class="page-header">
-        <h2>💬 Customer Messages <?php if ($unread > 0): ?><span style="font-size:14px;color:#e53935;font-weight:normal;">(<?= $unread ?> unread)</span><?php endif; ?></h2>
+        <h2>💬 Customer Messages
+            <?php if ($unread > 0): ?>
+                <span style="font-size:14px;color:#e53935;font-weight:normal;">(<?= $unread ?> unread)</span>
+            <?php endif; ?>
+        </h2>
         <form method="POST" style="display:inline;">
             <button type="submit" name="mark_all_read" class="btn btn-gray">✓ Mark All as Read</button>
         </form>
@@ -122,31 +176,58 @@ if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
     <?= $status ?>
 
     <?php if ($messages->num_rows === 0): ?>
-        <div class="empty-state"><i class="fas fa-inbox"></i><p>No messages yet.</p></div>
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No messages yet.</p>
+        </div>
     <?php else: ?>
+
     <?php while ($msg = $messages->fetch_assoc()):
-        $replies  = $conn->query("SELECT * FROM message_replies WHERE message_id = {$msg['id']} ORDER BY replied_at ASC");
+        // Fetch replies for this message (rows where reply_to_id = this message's id)
+        $replies  = $conn->query(
+            "SELECT m.*, COALESCE(u.name, 'Admin') as sender_name
+             FROM   messages m
+             LEFT JOIN users u ON m.user_id = u.id
+             WHERE  m.reply_to_id = {$msg['id']}
+             ORDER  BY m.sent_at ASC"
+        );
         $isUnread = $msg['is_read'] == 0;
         $hasReply = $msg['reply_count'] > 0;
     ?>
+
     <div class="msg-card <?= $isUnread ? 'unread' : '' ?>">
+
+        <!-- Header -->
         <div class="msg-header">
             <div>
-                <div class="sender-name"><?= htmlspecialchars($msg['name']) ?></div>
+                <div class="sender-name"><?= htmlspecialchars($msg['sender_name']) ?></div>
                 <div class="sender-info">
-                    <span><i class="fas fa-envelope" style="margin-right:4px;"></i><?= htmlspecialchars($msg['email']) ?></span>
-                    <?php if (!empty($msg['phone'])): ?><span><i class="fas fa-phone" style="margin-right:4px;"></i><?= htmlspecialchars($msg['phone']) ?></span><?php endif; ?>
+                    <span><i class="fas fa-envelope" style="margin-right:4px;"></i><?= htmlspecialchars($msg['sender_email']) ?></span>
+                    <?php if (!empty($msg['phone'])): ?>
+                        <span><i class="fas fa-phone" style="margin-right:4px;"></i><?= htmlspecialchars($msg['phone']) ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="msg-badges">
-                <?php if ($isUnread): ?><span class="badge-unread">● Unread</span><?php else: ?><span class="badge-read">✓ Read</span><?php endif; ?>
-                <?php if ($hasReply): ?><span class="badge-replied">↩ Replied (<?= $msg['reply_count'] ?>)</span><?php endif; ?>
-                <span class="msg-time"><i class="fas fa-clock" style="margin-right:3px;"></i><?= date('d M Y, h:i A', strtotime($msg['sent_at'])) ?></span>
+                <?php if ($isUnread): ?>
+                    <span class="badge-unread">● Unread</span>
+                <?php else: ?>
+                    <span class="badge-read">✓ Read</span>
+                <?php endif; ?>
+                <?php if ($hasReply): ?>
+                    <span class="badge-replied">↩ Replied (<?= $msg['reply_count'] ?>)</span>
+                <?php endif; ?>
+                <span class="msg-time">
+                    <i class="fas fa-clock" style="margin-right:3px;"></i>
+                    <?= date('d M Y, h:i A', strtotime($msg['sent_at'])) ?>
+                </span>
             </div>
         </div>
 
+        <!-- Message body -->
         <div class="msg-body"><?= nl2br(htmlspecialchars($msg['message'])) ?></div>
 
+        <!-- Actions -->
         <div class="msg-actions">
             <button class="btn btn-blue" onclick="toggleReply(<?= $msg['id'] ?>)">
                 <i class="fas fa-reply" style="margin-right:5px;"></i> Reply
@@ -154,46 +235,68 @@ if (isset($_GET['error']) && $_GET['error'] === 'empty_reply') {
             <?php if ($isUnread): ?>
             <form method="POST" style="display:inline;">
                 <input type="hidden" name="message_id" value="<?= $msg['id'] ?>">
-                <button type="submit" name="mark_read" class="btn btn-green"><i class="fas fa-check" style="margin-right:5px;"></i> Mark as Read</button>
+                <button type="submit" name="mark_read" class="btn btn-green">
+                    <i class="fas fa-check" style="margin-right:5px;"></i> Mark as Read
+                </button>
             </form>
             <?php endif; ?>
-            <a href="messages.php?delete=<?= $msg['id'] ?>" class="btn btn-red" onclick="return confirm('Delete this message and all replies?')">
+            <a href="messages.php?delete=<?= $msg['id'] ?>"
+               class="btn btn-red"
+               onclick="return confirm('Delete this message and all replies?')">
                 <i class="fas fa-trash" style="margin-right:5px;"></i> Delete
             </a>
         </div>
 
+        <!-- Reply compose panel -->
         <div class="reply-panel" id="reply-<?= $msg['id'] ?>">
             <h4><i class="fas fa-pen" style="margin-right:6px;"></i>Write a Reply</h4>
-            <p class="reply-to-info">To: <strong><?= htmlspecialchars($msg['name']) ?></strong> &lt;<?= htmlspecialchars($msg['email']) ?>&gt;</p>
-            <form method="POST" action="reply_message.php">
+            <p class="reply-to-info">
+                To: <strong><?= htmlspecialchars($msg['sender_name']) ?></strong>
+                &lt;<?= htmlspecialchars($msg['sender_email']) ?>&gt;
+            </p>
+            <form method="POST">
                 <input type="hidden" name="message_id" value="<?= $msg['id'] ?>">
-                <input type="hidden" name="to_email"   value="<?= htmlspecialchars($msg['email']) ?>">
-                <input type="hidden" name="to_name"    value="<?= htmlspecialchars($msg['name']) ?>">
                 <textarea name="reply_text" placeholder="Type your reply here..." required></textarea>
                 <div class="reply-actions">
-                    <button type="submit" class="btn btn-blue"><i class="fas fa-paper-plane" style="margin-right:5px;"></i> Send Reply</button>
-                    <button type="button" class="btn btn-gray" onclick="toggleReply(<?= $msg['id'] ?>)">Cancel</button>
+                    <button type="submit" name="send_reply" class="btn btn-blue">
+                        <i class="fas fa-paper-plane" style="margin-right:5px;"></i> Send Reply
+                    </button>
+                    <button type="button" class="btn btn-gray" onclick="toggleReply(<?= $msg['id'] ?>)">
+                        Cancel
+                    </button>
                 </div>
             </form>
         </div>
 
-<?php if ($hasReply): ?>
+        <!-- Previous replies -->
+        <?php if ($hasReply && $replies && $replies->num_rows > 0): ?>
         <div class="prev-replies">
-            <h4><i class="fas fa-history" style="margin-right:5px;"></i>Previous Replies (<?= $msg['reply_count'] ?>)</h4>
-            <?php while ($r = $replies->fetch_assoc()): ?>
-            <div class="prev-reply-item" style="background:<?= $r['sender']==='admin' ? '#e3f2fd' : '#fce4ec' ?>;">
-                <small style="font-weight:700; color:<?= $r['sender']==='admin' ? '#0d47a1' : '#c2185b' ?>;">
-                    <?= $r['sender']==='admin' ? '👨‍💼 Admin' : '👤 Customer' ?>
+            <h4><i class="fas fa-history" style="margin-right:5px;"></i>Replies (<?= $msg['reply_count'] ?>)</h4>
+            <?php while ($r = $replies->fetch_assoc()):
+                // If user_id is null = admin reply, else customer reply
+                $isAdminReply = ($r['user_id'] === NULL);
+            ?>
+            <div class="prev-reply-item <?= $isAdminReply ? 'admin-reply' : 'customer-reply' ?>">
+                <small style="font-weight:700; color:<?= $isAdminReply ? '#0d47a1' : '#c2185b' ?>;">
+                    <?= $isAdminReply ? '👨‍💼 Admin' : '👤 ' . htmlspecialchars($r['sender_name']) ?>
                 </small><br>
-                <?= nl2br(htmlspecialchars($r['reply_text'])) ?>
-                <div class="reply-time"><?= date('d M Y, h:i A', strtotime($r['replied_at'])) ?></div>
+                <?= nl2br(htmlspecialchars($r['message'])) ?>
+                <div class="reply-time">
+                    <i class="fas fa-clock" style="margin-right:3px;"></i>
+                    <?= date('d M Y, h:i A', strtotime($r['sent_at'])) ?>
+                </div>
             </div>
             <?php endwhile; ?>
         </div>
         <?php endif; ?>
-          <?php endwhile; ?>
+
+    </div><!-- closes msg-card -->
+
+    <?php endwhile; ?>
     <?php endif; ?>
-</div>
+
+</div><!-- closes page-wrap -->
+
 <script>
 function toggleReply(id) {
     const panel = document.getElementById('reply-' + id);

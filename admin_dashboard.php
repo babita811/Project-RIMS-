@@ -15,8 +15,12 @@ $lowStock       = $conn->query("SELECT COUNT(*) as c FROM products WHERE quantit
 $outOfStock     = $conn->query("SELECT COUNT(*) as c FROM products WHERE quantity = 0")->fetch_assoc()['c'];
 $totalCustomers = $conn->query("SELECT COUNT(*) as c FROM users WHERE role = 'user'")->fetch_assoc()['c'];
 
-// ✅ FIXED: Unread messages count for navbar badge
 $unreadMessages = $conn->query("SELECT COUNT(*) as c FROM messages WHERE is_read = 0")->fetch_assoc()['c'];
+
+// Pending orders count for badge
+$pendingOrders = 0;
+$poResult = $conn->query("SELECT COUNT(*) as c FROM sales_details WHERE status = 'Pending'");
+if ($poResult) $pendingOrders = $poResult->fetch_assoc()['c'];
 
 // Recent sales
 $recentSales = $conn->query("
@@ -46,14 +50,12 @@ $recentSales = $conn->query("
             padding-top: 70px;
         }
 
-        /* Petals */
         .petal { position: fixed; top: -50px; font-size: 20px; animation: fall linear infinite; pointer-events: none; z-index: 0; }
         @keyframes fall {
             0%   { transform: translateY(-50px) rotate(0deg); opacity: 0.8; }
             100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
         }
 
-        /* Navbar */
         .navbar {
             position: fixed; top:0; left:0; width:100%;
             background: linear-gradient(90deg, #d63384, #c2185b);
@@ -74,7 +76,6 @@ $recentSales = $conn->query("
             margin-left: auto;
             margin-right: 0.5rem;
         }
-        /* ✅ Badge style */
         .unread-badge {
             background: #ff4444;
             color: white;
@@ -96,7 +97,6 @@ $recentSales = $conn->query("
         .welcome h2 { font-size: 2rem; font-weight: 700; color: #c2185b; margin-bottom: 0.3rem; }
         .welcome p { color: #888; font-size: 0.9rem; }
 
-        /* Stat cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -112,15 +112,16 @@ $recentSales = $conn->query("
         .stat-card.danger  { border-top-color: #e74c3c; }
         .stat-card.green   { border-top-color: #27ae60; }
         .stat-card.blue    { border-top-color: #3498db; }
+        .stat-card.purple  { border-top-color: #8e44ad; }
         .stat-card i { font-size: 1.8rem; color: #d63384; margin-bottom: 0.6rem; display: block; }
         .stat-card.warning i { color: #ff9800; }
         .stat-card.danger i  { color: #e74c3c; }
         .stat-card.green i   { color: #27ae60; }
         .stat-card.blue i    { color: #3498db; }
+        .stat-card.purple i  { color: #8e44ad; }
         .stat-card .stat-value { font-size: 1.8rem; font-weight: 700; color: #333; }
         .stat-card .stat-label { font-size: 0.78rem; color: #999; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
 
-        /* Quick actions */
         .section-title {
             font-size: 1.1rem; font-weight: 700; color: #c2185b; margin-bottom: 1rem;
             display: flex; align-items: center; gap: 0.5rem;
@@ -139,8 +140,14 @@ $recentSales = $conn->query("
         .action-card i { font-size: 2rem; color: #d63384; display: block; margin-bottom: 0.7rem; }
         .action-card h3 { font-size: 1rem; font-weight: 700; color: #333; margin-bottom: 0.3rem; }
         .action-card p { font-size: 0.8rem; color: #999; }
+        .action-card .card-badge {
+            display: inline-block;
+            background: #e74c3c; color: white;
+            border-radius: 20px; font-size: 0.72rem;
+            padding: 2px 8px; font-weight: 700;
+            margin-top: 0.4rem;
+        }
 
-        /* Recent sales */
         .recent-wrap { background: white; border-radius: 16px; box-shadow: 0 6px 20px rgba(214,51,132,0.1); overflow: hidden; }
         .recent-header {
             background: linear-gradient(90deg, #d63384, #c2185b);
@@ -163,7 +170,6 @@ $recentSales = $conn->query("
 </head>
 <body>
 
-<!-- Petals -->
 <script>
 for (let i = 0; i < 18; i++) {
     let p = document.createElement("div");
@@ -184,8 +190,14 @@ for (let i = 0; i < 18; i++) {
     <a href="sales.php">Sales</a>
     <a href="analytics.php">Analytics</a>
     <a href="view_sales.php">View Sales</a>
+    <!-- ✅ NEW: Customer Orders link with pending badge -->
+    <a href="admin_orders.php">
+        Orders
+        <?php if ($pendingOrders > 0): ?>
+            <span class="unread-badge"><?= $pendingOrders ?></span>
+        <?php endif; ?>
+    </a>
     <span class="admin-name"><i class="fas fa-user-shield"></i> <?= htmlspecialchars($_SESSION['clientName']) ?></span>
-    <!-- ✅ FIXED: Messages with unread badge -->
     <a href="messages.php">
         Messages
         <?php if ($unreadMessages > 0): ?>
@@ -223,6 +235,12 @@ for (let i = 0; i < 18; i++) {
             <i class="fas fa-users"></i>
             <div class="stat-value"><?= $totalCustomers ?></div>
             <div class="stat-label">Customers</div>
+        </div>
+        <!-- ✅ NEW: Pending Orders stat card -->
+        <div class="stat-card purple">
+            <i class="fas fa-clipboard-list"></i>
+            <div class="stat-value"><?= $pendingOrders ?></div>
+            <div class="stat-label">Pending Orders</div>
         </div>
         <div class="stat-card warning">
             <i class="fas fa-exclamation-triangle"></i>
@@ -268,6 +286,15 @@ for (let i = 0; i < 18; i++) {
             <i class="fas fa-receipt"></i>
             <h3>Sales Report</h3>
             <p>View all sales records</p>
+        </a>
+        <!-- ✅ NEW: Customer Orders quick action card -->
+        <a class="action-card" href="admin_orders.php">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>Customer Orders</h3>
+            <p>View & manage orders</p>
+            <?php if ($pendingOrders > 0): ?>
+                <span class="card-badge"><?= $pendingOrders ?> Pending</span>
+            <?php endif; ?>
         </a>
         <a class="action-card" href="messages.php">
             <i class="fas fa-envelope"></i>

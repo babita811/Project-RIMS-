@@ -18,8 +18,10 @@ if (empty($reply_text) || $message_id === 0) {
     exit();
 }
 
-// Make sure this message belongs to this user
-$check = $conn->prepare("SELECT id FROM messages WHERE id = ? AND user_id = ?");
+// Verify this message belongs to this user
+$check = $conn->prepare(
+    "SELECT id FROM messages WHERE id = ? AND user_id = ? AND reply_to_id IS NULL"
+);
 $check->bind_param("ii", $message_id, $_SESSION['clientId']);
 $check->execute();
 if ($check->get_result()->num_rows === 0) {
@@ -28,11 +30,13 @@ if ($check->get_result()->num_rows === 0) {
 }
 $check->close();
 
+// Insert reply — user_id set so we know it's a customer reply
+$client_id = $_SESSION['clientId'];
 $stmt = $conn->prepare(
-    "INSERT INTO message_replies (message_id, reply_text, replied_at, sender)
-     VALUES (?, ?, NOW(), 'user')"
+    "INSERT INTO messages (user_id, phone, message, is_read, sent_at, reply_to_id)
+     VALUES (?, '', ?, 1, NOW(), ?)"
 );
-$stmt->bind_param("is", $message_id, $reply_text);
+$stmt->bind_param("isi", $client_id, $reply_text, $message_id);
 
 if ($stmt->execute()) {
     echo json_encode(['success' => true]);

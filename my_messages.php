@@ -239,13 +239,15 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
         </div>`;
       });
   }
+  // ... existing loadMessages and DOMContentLoaded functions ...
 
   function renderMessages(messages) {
     const list = document.getElementById('msgsList');
 
-    // Count only admin replies for "Replies Received"
+    // Count ONLY replies from the admin for the "Replies Received" stat
     const totalReplies = messages.reduce((sum, m) =>
       sum + m.replies.filter(r => r.sender === 'admin').length, 0);
+      
     document.getElementById('totalMsgs').textContent    = messages.length;
     document.getElementById('totalReplies').textContent = totalReplies;
 
@@ -271,43 +273,51 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
       let repliesHTML = '';
       if (m.replies.length > 0) {
         repliesHTML = `<div class="replies-section">` +
-          m.replies.map(r => `
-            <div class="reply-bubble" style="background:${r.sender === 'admin' ? '#f0f7ff' : '#fff0f7'};">
+          m.replies.map(r => {
+            // Check if sender is admin or user
+            const isAdmin = (r.sender === 'admin');
+            
+            return `
+            <div class="reply-bubble" style="background:${isAdmin ? '#f0f7ff' : '#fff0f7'}; border-left: 4px solid ${isAdmin ? '#0d47a1' : '#d63384'};">
               <div class="reply-header">
-                <span class="reply-label" style="background:${r.sender === 'admin' ? '#e3f2fd' : '#fce4ec'};color:${r.sender === 'admin' ? '#0d47a1' : '#c2185b'};">
-                  ${r.sender === 'admin' ? '🏪 RIMS Support' : '👤 You'}
+                <span class="reply-label" style="background:${isAdmin ? '#e3f2fd' : '#fce4ec'}; color:${isAdmin ? '#0d47a1' : '#c2185b'}; font-weight:bold; padding:2px 8px; border-radius:4px; font-size:11px;">
+                  ${isAdmin ? '🏪 RIMS Support' : '👤 You'}
                 </span>
-                <span class="reply-time">${formatDate(r.time)}</span>
+                <span class="reply-time" style="font-size:11px; color:#888; margin-left:10px;">${formatDate(r.time)}</span>
               </div>
-              <div class="reply-text">${esc(r.text).replace(/\n/g, '<br>')}</div>
-            </div>
-          `).join('') + `</div>`;
+              <div class="reply-text" style="margin-top:5px;">${esc(r.text).replace(/\n/g, '<br>')}</div>
+            </div>`;
+          }).join('') + `</div>`;
       } else {
-        repliesHTML = `<div class="no-reply-label">
+        repliesHTML = `<div class="no-reply-label" style="padding:15px; color:#999; font-size:13px; font-style:italic;">
           <i class="fas fa-clock" style="margin-right:0.4rem;"></i>
           No reply yet — we'll get back to you soon!
         </div>`;
       }
 
       return `
-        <div class="msg-thread">
-          <div class="customer-msg">
-            <div class="msg-header">
-              <span class="msg-label">
-                <i class="fas fa-user" style="margin-right:0.3rem;"></i> You
+        <div class="msg-thread" style="background:white; border-radius:15px; margin-bottom:25px; box-shadow:0 4px 15px rgba(0,0,0,0.05); overflow:hidden; border:1px solid #f5d0ef;">
+          <div class="customer-msg" style="padding:20px; background:#fffafa;">
+            <div class="msg-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span class="msg-label" style="color:#d45fbf; font-weight:700; font-size:13px;">
+                <i class="fas fa-user" style="margin-right:0.3rem;"></i> You (Original)
               </span>
-              <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
+              <div style="display:flex; gap:0.6rem; align-items:center;">
                 ${statusBadge}
-                <span class="msg-time">${sentDate}</span>
+                <span class="msg-time" style="font-size:12px; color:#999;">${sentDate}</span>
               </div>
             </div>
-            <div class="msg-text">${esc(m.message).replace(/\n/g, '<br>')}</div>
+            <div class="msg-text" style="font-size:15px; color:#444;">${esc(m.message).replace(/\n/g, '<br>')}</div>
           </div>
-          ${repliesHTML}
-          <div class="followup-section">
+          
+          <div style="background:#fdfdfd; padding:10px 20px;">
+             ${repliesHTML}
+          </div>
+
+          <div class="followup-section" style="padding:15px 20px; border-top:1px solid #eee; background:#fff;">
             <form onsubmit="sendReply(event, ${m.id})">
-              <textarea name="reply_text" placeholder="Write a follow-up message..." required></textarea>
-              <button type="submit">
+              <textarea name="reply_text" placeholder="Write a follow-up message..." required style="width:100%; border:1px solid #f5d0ef; border-radius:8px; padding:10px; font-family:inherit; min-height:60px;"></textarea>
+              <button type="submit" style="background:#f17dda; color:white; border:none; padding:8px 18px; border-radius:8px; cursor:pointer; margin-top:10px; font-weight:600;">
                 <i class="fas fa-paper-plane" style="margin-right:5px;"></i> Send Follow-up
               </button>
             </form>
@@ -322,8 +332,10 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
     const text = form.reply_text.value.trim();
     const btn  = form.querySelector('button');
     if (!text) return;
+
     btn.disabled     = true;
     btn.textContent  = 'Sending...';
+
     fetch('send_reply.php', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -333,7 +345,7 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
     .then(data => {
       if (data.success) {
         form.reply_text.value = '';
-        loadMessages();
+        loadMessages(); // Refresh the list
       } else {
         alert('Error: ' + data.error);
         btn.disabled    = false;
@@ -373,6 +385,5 @@ $clientEmail = htmlspecialchars($_SESSION['clientEmail'] ?? '');
     window.location.href = 'purchase.php';
   }
 </script>
-
 </body>
 </html>
