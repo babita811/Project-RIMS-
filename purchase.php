@@ -87,7 +87,6 @@ if (isset($_POST['checkout'])) {
     $address  = trim($_POST['address'] ?? '');
     $city     = trim($_POST['city'] ?? '');
     $note     = trim($_POST['note'] ?? '');
-
     $phone    = trim($_POST['phone'] ?? $userData['phone'] ?? '');
 
     // Save phone/address/city back to users table for future pre-fill
@@ -97,6 +96,7 @@ if (isset($_POST['checkout'])) {
         $saveUser->execute();
         $saveUser->close();
     }
+
     if (empty($address) || empty($city) || empty($phone)) {
         $error = "Please fill in your phone, address and city.";
     } elseif (!empty($_SESSION['cart'])) {
@@ -139,7 +139,7 @@ if (isset($_POST['checkout'])) {
             // Add order_id to sales if missing
             $conn->query("ALTER TABLE sales ADD COLUMN IF NOT EXISTS order_id INT DEFAULT NULL");
 
-            // Insert normalized order — user_id links to users table (name/email/phone fetched via JOIN)
+            // Insert normalized order
             $ins_order = $conn->prepare("INSERT INTO sales_details (user_id, address, city, note, payment_method, total_amount) VALUES (?, ?, ?, ?, 'COD', ?)");
             $ins_order->bind_param("isssd", $userId, $address, $city, $note, $totalAmount);
             $ins_order->execute();
@@ -168,7 +168,7 @@ if (isset($_POST['checkout'])) {
                 $ins->close();
             }
 
-            // Save for success page display — pull name/phone from users table
+            // Save for success page display
             $_SESSION['last_cart']     = $_SESSION['cart'];
             $_SESSION['delivery_info'] = [
                 'fullname' => $userData['name'] ?? $clientName,
@@ -202,233 +202,7 @@ $delivery = $_SESSION['delivery_info'] ?? [];
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="css/homepage.css">
-  <style>
-    .cart-section {
-      max-width: 1000px;
-      margin: 120px auto 60px;
-      padding: 0 1.5rem;
-    }
-    .page-heading {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.4rem; font-weight: 900;
-      color: var(--dark); margin-bottom: 2rem;
-    }
-    .page-heading span { color: var(--pink); font-style: italic; }
-
-    /* Two column layout */
-    .checkout-grid {
-      display: grid;
-      grid-template-columns: 1fr 420px;
-      gap: 24px;
-      align-items: start;
-    }
-    @media (max-width: 820px) { .checkout-grid { grid-template-columns: 1fr; } }
-
-    /* Cart items */
-    .cart-item {
-      background: var(--white); border-radius: 1rem;
-      box-shadow: 0 4px 20px rgba(232,69,122,0.08);
-      padding: 1.2rem 1.5rem; margin-bottom: 1rem;
-      display: grid;
-      grid-template-columns: 80px 1fr auto auto;
-      gap: 1rem; align-items: center;
-      transition: box-shadow 0.2s;
-    }
-    .cart-item:hover { box-shadow: var(--shadow); }
-    .cart-item img { width: 80px; height: 80px; object-fit: cover; border-radius: 10px; }
-    .cart-item-info h4 { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 0.2rem; }
-    .cart-item-info p  { font-size: 0.85rem; color: var(--muted); }
-    .cart-item-info .item-price { font-size: 1rem; font-weight: 700; color: var(--pink); margin-top: 0.2rem; }
-
-    .qty-form { display: flex; align-items: center; gap: 0.5rem; }
-    .qty-form button { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--white); color: var(--pink); font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.2s; }
-    .qty-form button:hover { background: var(--pink); color: var(--white); border-color: var(--pink); }
-    .qty-form input[type=number] { width: 45px; text-align: center; border: 1.5px solid var(--border); border-radius: 8px; padding: 0.3rem; font-size: 0.95rem; color: var(--dark); background: var(--pink-soft); }
-    .btn-remove { background: none; border: none; color: #ccc; font-size: 1.1rem; cursor: pointer; padding: 0.3rem; transition: color 0.2s; width: auto; }
-    .btn-remove:hover { color: #e74c3c; background: none; transform: none; }
-
-    /* Right panel */
-    .right-panel { position: sticky; top: 90px; }
-
-    /* Delivery form */
-    .delivery-card {
-      background: var(--white);
-      border-radius: 1rem;
-      box-shadow: 0 4px 20px rgba(232,69,122,0.08);
-      padding: 1.8rem;
-      margin-bottom: 1rem;
-    }
-    .delivery-card h3 {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.2rem; font-weight: 700;
-      color: var(--dark); margin-bottom: 1.2rem;
-      padding-bottom: 0.8rem;
-      border-bottom: 2px solid var(--border);
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    .delivery-card h3 i { color: var(--pink); }
-
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; font-size: 0.8rem; font-weight: 700; color: #555; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.03em; }
-    .form-group label .req { color: var(--pink); }
-    .form-group input,
-    .form-group textarea {
-      width: 100%; padding: 0.7rem 1rem;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.92rem; color: var(--dark);
-      background: var(--pink-soft);
-      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-      box-sizing: border-box;
-    }
-    .form-group input:focus,
-    .form-group textarea:focus {
-      border-color: var(--pink);
-      box-shadow: 0 0 0 3px rgba(232,69,122,0.1);
-      background: #fff;
-    }
-    .form-group textarea { resize: vertical; min-height: 70px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
-
-    /* COD badge */
-    .cod-badge {
-      background: #eafaf1;
-      border: 1.5px solid #a9dfbf;
-      border-radius: 10px;
-      padding: 0.9rem 1.1rem;
-      display: flex; align-items: center; gap: 0.8rem;
-      margin-bottom: 1rem;
-    }
-    .cod-badge i { font-size: 1.5rem; color: #27ae60; }
-    .cod-badge div { font-size: 0.88rem; color: #1e8449; }
-    .cod-badge strong { font-size: 0.95rem; display: block; color: #1a5e36; }
-
-    /* Order summary */
-    .summary-card {
-      background: var(--white);
-      border-radius: 1rem;
-      box-shadow: 0 4px 20px rgba(232,69,122,0.08);
-      padding: 1.5rem 1.8rem;
-      margin-bottom: 1rem;
-    }
-    .summary-card h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--dark); margin-bottom: 1rem; padding-bottom: 0.7rem; border-bottom: 2px solid var(--border); }
-    .summary-row { display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--muted); padding: 0.3rem 0; }
-    .summary-row.total { font-size: 1.1rem; font-weight: 700; color: var(--dark); border-top: 2px solid var(--border); margin-top: 0.5rem; padding-top: 0.8rem; }
-    .summary-row.total span:last-child { color: var(--pink); font-size: 1.3rem; }
-
-    .btn-checkout {
-      width: 100%; padding: 1rem;
-      background: var(--pink); color: var(--white);
-      border: none; border-radius: 50px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1rem; font-weight: 700;
-      cursor: pointer; transition: all 0.3s;
-      box-shadow: 0 8px 24px rgba(232,69,122,0.3);
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    }
-    .btn-checkout:hover { background: var(--rose); transform: translateY(-2px); }
-
-    /* Empty / Error */
-    .empty-cart { text-align: center; padding: 4rem 2rem; background: var(--white); border-radius: 1rem; box-shadow: 0 4px 20px rgba(232,69,122,0.06); }
-    .empty-cart i { font-size: 4rem; color: var(--border); display: block; margin-bottom: 1rem; }
-    .empty-cart h3 { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--muted); margin-bottom: 0.5rem; }
-    .empty-cart p { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.95rem; }
-    .error-msg { background: #ffe0f0; border: 1.5px solid var(--pink); border-radius: 8px; padding: 0.8rem 1.2rem; color: #c0392b; margin-bottom: 1rem; font-size: 0.9rem; }
-
-    /* Success */
-    .success-card { background: var(--white); border-radius: 1.2rem; box-shadow: var(--shadow-lg); padding: 3rem; text-align: center; border-top: 4px solid #27ae60; }
-    .success-card i.big { font-size: 4rem; color: #27ae60; display: block; margin-bottom: 1rem; }
-    .success-card h2 { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 900; color: var(--dark); margin-bottom: 0.5rem; }
-    .success-card p { color: var(--muted); margin-bottom: 1rem; }
-
-    .delivery-summary {
-      background: #f9f9f9; border-radius: 10px;
-      padding: 1rem 1.2rem; text-align: left;
-      margin: 1.2rem 0;
-    }
-    .delivery-summary h4 { font-size: 0.9rem; font-weight: 700; color: #555; margin-bottom: 0.6rem; }
-    .delivery-summary p { font-size: 0.88rem; color: #333; margin-bottom: 0.3rem; }
-    .delivery-summary p i { color: var(--pink); width: 18px; }
-    .cod-confirm { display: inline-flex; align-items: center; gap: 0.5rem; background: #eafaf1; border-radius: 20px; padding: 0.4rem 1rem; font-size: 0.85rem; color: #27ae60; font-weight: 700; margin-bottom: 1.5rem; }
-
-    @media (max-width: 600px) {
-      .cart-item { grid-template-columns: 60px 1fr; }
-      .form-row { grid-template-columns: 1fr; }
-    }
-
-    /* ── Override readonly-field "Not set" from homepage.css ── */
-    .readonly-field {
-      padding: 0.7rem 1rem;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: 0.92rem;
-      color: var(--dark);
-      background: var(--pink-soft);
-    }
-    .readonly-field::after { content: none !important; }
-
-    /* ── Stock Alert Modal ── */
-    #stockModal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 9999;
-      justify-content: center;
-      align-items: center;
-    }
-    #stockModal.show { display: flex; }
-    .stock-modal-box {
-      background: #fff;
-      border-radius: 1.5rem;
-      padding: 2.5rem 2rem;
-      text-align: center;
-      max-width: 340px;
-      width: 90%;
-      box-shadow: 0 20px 60px rgba(232,69,122,0.25);
-      border-top: 4px solid var(--pink);
-      animation: popIn 0.25s ease;
-    }
-    @keyframes popIn {
-      from { transform: scale(0.8); opacity: 0; }
-      to   { transform: scale(1);   opacity: 1; }
-    }
-    .stock-modal-icon {
-      width: 70px; height: 70px;
-      background: #fff0f8;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1.2rem;
-      border: 2px solid #f5d0ef;
-    }
-    .stock-modal-icon i { font-size: 2rem; color: var(--pink); }
-    .stock-modal-box h3 {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.3rem; font-weight: 900;
-      color: #333; margin-bottom: 0.5rem;
-    }
-    .stock-modal-box p {
-      color: #888; font-size: 0.92rem; margin-bottom: 1.5rem;
-    }
-    .stock-modal-box p span {
-      color: var(--pink); font-weight: 700; font-size: 1rem;
-    }
-    .btn-modal-ok {
-      background: var(--pink);
-      color: #fff;
-      border: none;
-      border-radius: 50px;
-      padding: 0.7rem 2.5rem;
-      font-size: 0.95rem;
-      font-weight: 700;
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.15s;
-      box-shadow: 0 6px 20px rgba(232,69,122,0.3);
-    }
-    .btn-modal-ok:hover { background: var(--rose); transform: translateY(-2px); }
-  </style>
+  <link rel="stylesheet" href="css/cart.css">
 </head>
 <body>
 
@@ -689,24 +463,20 @@ function changeItemQty(idx, delta) {
   var newVal  = current + delta;
   if (newVal < 1) return;
 
-  // Get stock limit from + button's data-max attribute
-  var plusBtn = input.nextElementSibling;
+  var plusBtn  = input.nextElementSibling;
   var maxStock = parseInt(plusBtn.getAttribute("data-max")) || 9999;
   if (newVal > maxStock) {
     showStockModal(maxStock);
     return;
   }
 
-  // Update displayed value
   input.value = newVal;
 
-  // Update minus button state
-  var minusBtn = input.previousElementSibling;
-  minusBtn.disabled      = (newVal <= 1);
+  var minusBtn       = input.previousElementSibling;
+  minusBtn.disabled  = (newVal <= 1);
   minusBtn.style.opacity = (newVal <= 1) ? "0.3" : "1";
   minusBtn.style.cursor  = (newVal <= 1) ? "not-allowed" : "pointer";
 
-  // Collect all current quantities and submit via dedicated form
   var container = document.getElementById("qtyHiddenInputs");
   container.innerHTML = "";
   document.querySelectorAll("input[id^='qty_']").forEach(function(el) {
@@ -725,18 +495,19 @@ function removeItem(idx) {
   document.getElementById("removeIndex").value = idx;
   document.getElementById("removeForm").submit();
 }
+
 function showStockModal(max) {
   document.getElementById("stockModalQty").textContent = max;
   document.getElementById("stockModal").classList.add("show");
 }
+
 function closeStockModal() {
   document.getElementById("stockModal").classList.remove("show");
 }
-// Close on backdrop click
+
 document.getElementById("stockModal").addEventListener("click", function(e) {
   if (e.target === this) closeStockModal();
 });
-
 </script>
 
 </body>
